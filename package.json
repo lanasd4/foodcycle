@@ -1,9 +1,19 @@
 {
   "name": "foodcycle",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev:web": "npm run dev -w @foodcycle/web",
-    "build:web": "npm run build -w @foodcycle/web"
+    "build:web": "npm run build -w @foodcycle/web",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "dev:api": "npm run start:dev -w @foodcycle/api",
+    "build:api": "npm run build -w @foodcycle/api",
+    "test:api": "npm test -w @foodcycle/api",
+    "test:e2e": "npm run test:e2e -w @foodcycle/api",
+    "seed:admin": "npm run seed:admin -w @foodcycle/api"
   }
 }

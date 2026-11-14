@@ -57,3 +57,14 @@ export function urgencyFor(
   if (remainingMinutes <= t.soonMinutes) return "SOON";
   return "NORMAL";
 }
+
+export const DONOR_ORG_TYPES = ["RESTAURANT", "HOTEL", "BAKERY", "GROCERY"] as const;
+export const CHARITY_ORG_TYPES = ["CHARITY", "HUMANITARIAN"] as const;
+export const ORG_TYPES = [...DONOR_ORG_TYPES, ...CHARITY_ORG_TYPES] as const;
+export type OrgType = (typeof ORG_TYPES)[number];
+
+/** Which organization types each self-registering role may choose */
+export const ORG_TYPES_BY_ROLE = {
+  DONOR: DONOR_ORG_TYPES,
+  CHARITY: CHARITY_ORG_TYPES,
+} as const;
