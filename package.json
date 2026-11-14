@@ -1,0 +1,9 @@
+{
+  "name": "foodcycle",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:web": "npm run dev -w @foodcycle/web",
+    "build:web": "npm run build -w @foodcycle/web"
+  }
+}

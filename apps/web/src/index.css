@@ -1,0 +1,307 @@
+/* =====================================================================
+   FoodCycle Design Tokens
+   Three layers:
+     1. Primitive  — raw palette values (never used directly in components)
+     2. Semantic   — meaning in the UI (primary, border, muted…)
+     3. Domain     — meaning in the product (urgency, claim status…)
+   Components only use layers 2 and 3. Dark mode only re-maps layers 2/3.
+   Full rules: /DESIGN.md
+   ===================================================================== */
+
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans-arabic/400.css";
+@import "@fontsource/ibm-plex-sans-arabic/500.css";
+@import "@fontsource/ibm-plex-sans-arabic/600.css";
+@import "@fontsource/ibm-plex-sans-arabic/700.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- 1. Primitive palette ---------- */
+:root {
+  /* Brand green — sustainability, freshness */
+  --green-50: #ecfdf3;
+  --green-100: #d1fadf;
+  --green-200: #a6f0c4;
+  --green-300: #6ee0a0;
+  --green-400: #34c77b;
+  --green-500: #13a05e;
+  --green-600: #0b7f4a;
+  --green-700: #096a3e;
+  --green-800: #0b5434;
+  --green-900: #0a432b;
+  --green-950: #052818;
+
+  /* Saffron — warmth, food, highlights */
+  --saffron-50: #fff8eb;
+  --saffron-100: #feebc8;
+  --saffron-200: #fdd58c;
+  --saffron-300: #fcba4e;
+  --saffron-400: #f9a027;
+  --saffron-500: #f08410;
+  --saffron-600: #d4640a;
+  --saffron-700: #b0480c;
+
+  /* Warm neutrals */
+  --stone-0: #ffffff;
+  --stone-25: #fbfbf9;
+  --stone-50: #f6f6f3;
+  --stone-100: #efeeea;
+  --stone-200: #e3e1db;
+  --stone-300: #cbc9c1;
+  --stone-400: #a3a199;
+  --stone-500: #7b7972;
+  --stone-600: #5d5b55;
+  --stone-700: #44433e;
+  --stone-800: #2d2c29;
+  --stone-850: #232220;
+  --stone-900: #1c1b19;
+  --stone-950: #121210;
+
+  /* Signals */
+  --red-50: #fdecec;
+  --red-400: #f87171;
+  --red-600: #c9302c;
+  --amber-50: #fef3c7;
+  --amber-400: #fbbf24;
+  --amber-700: #b45309;
+  --blue-50: #e8f0fe;
+  --blue-400: #6ea0ff;
+  --blue-600: #1d5fd1;
+}
+
+/* ---------- 2 + 3. Semantic & domain tokens — LIGHT ---------- */
+:root {
+  --background: var(--stone-25);
+  --foreground: var(--stone-900);
+  --card: var(--stone-0);
+  --card-foreground: var(--stone-900);
+  --popover: var(--stone-0);
+  --popover-foreground: var(--stone-900);
+
+  --primary: var(--green-600);
+  --primary-hover: var(--green-700);
+  --primary-foreground: var(--stone-0);
+  --primary-soft: var(--green-50);
+  --primary-soft-foreground: var(--green-700);
+
+  --accent: var(--saffron-400);
+  --accent-foreground: var(--stone-900);
+  --accent-soft: var(--saffron-50);
+  --accent-soft-foreground: var(--saffron-700);
+
+  --secondary: var(--stone-100);
+  --secondary-foreground: var(--stone-800);
+  --muted: var(--stone-50);
+  --muted-foreground: var(--stone-600);
+  --border: var(--stone-200);
+  --input: var(--stone-300);
+  --ring: var(--green-500);
+
+  --destructive: var(--red-600);
+  --destructive-foreground: var(--stone-0);
+  --success: var(--green-700);
+  --warning: var(--amber-700);
+  --info: var(--blue-600);
+
+  /* Domain: offer urgency (Expiry Priority) */
+  --urgency-critical: var(--red-600);
+  --urgency-critical-soft: var(--red-50);
+  --urgency-soon: var(--amber-700);
+  --urgency-soon-soft: var(--amber-50);
+  --urgency-normal: var(--green-700);
+  --urgency-normal-soft: var(--green-50);
+
+  /* Domain: claim status */
+  --claim-pending: var(--amber-700);
+  --claim-pending-soft: var(--amber-50);
+  --claim-reserved: var(--blue-600);
+  --claim-reserved-soft: var(--blue-50);
+  --claim-picked: var(--green-700);
+  --claim-picked-soft: var(--green-50);
+  --claim-rejected: var(--red-600);
+  --claim-rejected-soft: var(--red-50);
+  --claim-closed: var(--stone-600);
+  --claim-closed-soft: var(--stone-100);
+
+  /* Domain: food safety */
+  --allergen: var(--saffron-700);
+  --allergen-soft: var(--saffron-50);
+  --cold-chain: var(--blue-600);
+  --cold-chain-soft: var(--blue-50);
+
+  /* Logo */
+  --logo-tile: var(--green-600);
+  --logo-ring: var(--stone-0);
+  --logo-leaf: var(--saffron-400);
+  --logo-vein: var(--green-600);
+
+  /* Shape & depth */
+  --radius: 0.75rem;
+  --shadow-sm: 0 1px 2px rgb(28 27 25 / 0.05);
+  --shadow-card: 0 1px 2px rgb(28 27 25 / 0.04), 0 4px 16px -4px rgb(28 27 25 / 0.08);
+  --shadow-pop: 0 12px 32px -8px rgb(28 27 25 / 0.18);
+}
+
+/* ---------- 2 + 3. Semantic & domain tokens — DARK ---------- */
+.dark {
+  --background: var(--stone-950);
+  --foreground: var(--stone-50);
+  --card: var(--stone-900);
+  --card-foreground: var(--stone-50);
+  --popover: var(--stone-850);
+  --popover-foreground: var(--stone-50);
+
+  --primary: var(--green-400);
+  --primary-hover: var(--green-300);
+  --primary-foreground: var(--green-950);
+  --primary-soft: rgb(52 199 123 / 0.14);
+  --primary-soft-foreground: var(--green-300);
+
+  --accent: var(--saffron-400);
+  --accent-foreground: var(--stone-950);
+  --accent-soft: rgb(249 160 39 / 0.14);
+  --accent-soft-foreground: var(--saffron-300);
+
+  --secondary: var(--stone-800);
+  --secondary-foreground: var(--stone-100);
+  --muted: var(--stone-850);
+  --muted-foreground: var(--stone-400);
+  --border: var(--stone-800);
+  --input: var(--stone-700);
+  --ring: var(--green-400);
+
+  --destructive: var(--red-400);
+  --destructive-foreground: var(--stone-950);
+  --success: var(--green-400);
+  --warning: var(--amber-400);
+  --info: var(--blue-400);
+
+  --urgency-critical: var(--red-400);
+  --urgency-critical-soft: rgb(248 113 113 / 0.14);
+  --urgency-soon: var(--amber-400);
+  --urgency-soon-soft: rgb(251 191 36 / 0.14);
+  --urgency-normal: var(--green-400);
+  --urgency-normal-soft: rgb(52 199 123 / 0.14);
+
+  --claim-pending: var(--amber-400);
+  --claim-pending-soft: rgb(251 191 36 / 0.14);
+  --claim-reserved: var(--blue-400);
+  --claim-reserved-soft: rgb(110 160 255 / 0.14);
+  --claim-picked: var(--green-400);
+  --claim-picked-soft: rgb(52 199 123 / 0.14);
+  --claim-rejected: var(--red-400);
+  --claim-rejected-soft: rgb(248 113 113 / 0.14);
+  --claim-closed: var(--stone-400);
+  --claim-closed-soft: var(--stone-800);
+
+  --allergen: var(--saffron-300);
+  --allergen-soft: rgb(249 160 39 / 0.14);
+  --cold-chain: var(--blue-400);
+  --cold-chain-soft: rgb(110 160 255 / 0.14);
+
+  --logo-tile: var(--green-500);
+  --logo-ring: var(--stone-0);
+  --logo-leaf: var(--saffron-300);
+  --logo-vein: var(--green-700);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 12px 32px -8px rgb(0 0 0 / 0.6);
+}
+
+/* ---------- Expose tokens to Tailwind utilities ---------- */
+@theme inline {
+  --font-sans: "IBM Plex Sans Arabic", "Segoe UI", system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-foreground: var(--accent-soft-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+
+  --color-urgency-critical: var(--urgency-critical);
+  --color-urgency-critical-soft: var(--urgency-critical-soft);
+  --color-urgency-soon: var(--urgency-soon);
+  --color-urgency-soon-soft: var(--urgency-soon-soft);
+  --color-urgency-normal: var(--urgency-normal);
+  --color-urgency-normal-soft: var(--urgency-normal-soft);
+
+  --color-claim-pending: var(--claim-pending);
+  --color-claim-pending-soft: var(--claim-pending-soft);
+  --color-claim-reserved: var(--claim-reserved);
+  --color-claim-reserved-soft: var(--claim-reserved-soft);
+  --color-claim-picked: var(--claim-picked);
+  --color-claim-picked-soft: var(--claim-picked-soft);
+  --color-claim-rejected: var(--claim-rejected);
+  --color-claim-rejected-soft: var(--claim-rejected-soft);
+  --color-claim-closed: var(--claim-closed);
+  --color-claim-closed-soft: var(--claim-closed-soft);
+
+  --color-allergen: var(--allergen);
+  --color-allergen-soft: var(--allergen-soft);
+  --color-cold-chain: var(--cold-chain);
+  --color-cold-chain-soft: var(--cold-chain-soft);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --shadow-xs: var(--shadow-sm);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "kern";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--primary-soft);
+    color: var(--primary-soft-foreground);
+  }
+}
+
+/* Quantities, times, counters: fixed-width digits so numbers don't jump */
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
