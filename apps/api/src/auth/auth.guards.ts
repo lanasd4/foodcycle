@@ -13,7 +13,8 @@ import type { Request } from 'express';
 import { DataSource } from 'typeorm';
 import { setActor } from '../common/request-context.js';
 import { IS_PUBLIC, REQUIRE_ACTIVE_ORG, ROLES } from './auth.decorators.js';
-import type { AuthUser, JwtPayload } from './auth.types.js';
+import { resolveAuthUser } from './auth.lookup.js';
+import type { AuthUser } from './auth.types.js';
 
 /**
  * Global guard #1 — authentication.
@@ -37,25 +38,10 @@ export class JwtAuthGuard implements CanActivate {
     const [scheme, token] = header.split(' ');
     if (scheme !== 'Bearer' || !token) throw new UnauthorizedException({ code: 'AUTH_REQUIRED' });
 
-    let payload: JwtPayload;
-    try {
-      payload = await this.jwt.verifyAsync<JwtPayload>(token);
-    } catch {
-      throw new UnauthorizedException({ code: 'TOKEN_INVALID' });
-    }
-
-    const rows: { id: string; email: string; role: Role; org_id: string | null; org_status: AuthUser['orgStatus'] }[] =
-      await this.db.query(
-        `SELECT u.id, u.email, u.role, o.id AS org_id, o.status AS org_status
-           FROM users u LEFT JOIN organizations o ON o.user_id = u.id
-          WHERE u.id = $1`,
-        [payload.sub],
-      );
-    const row = rows[0];
-    if (!row) throw new UnauthorizedException({ code: 'TOKEN_INVALID' });
-
-    req.user = { id: row.id, email: row.email, role: row.role, orgId: row.org_id, orgStatus: row.org_status };
-    setActor(row.id, row.role);
+    const user = await resolveAuthUser(this.jwt, this.db, token);
+    if (!user) throw new UnauthorizedException({ code: 'TOKEN_INVALID' });
+    req.user = user;
+    setActor(user.id, user.role);
     return true;
   }
 }

@@ -9,6 +9,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service.js';
 import { ClaimsService } from '../claims/claims.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { diff } from '../audit/audit.util.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { Organization } from '../organizations/organization.entity.js';
@@ -60,6 +61,7 @@ export class OffersService {
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
     private readonly claims: ClaimsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async categories() {
@@ -128,6 +130,13 @@ export class OffersService {
         entityType: 'offer',
         entityId: saved.id,
         after: { ...snapshot(saved), category: category.code },
+      });
+      await this.notifications.toNearbyCharities(m, saved, s.service_radius_km, {
+        offerId: saved.id,
+        title: saved.title,
+        donorName: org.name,
+        quantityKg: saved.quantityKg,
+        area: saved.area,
       });
       return saved;
     });

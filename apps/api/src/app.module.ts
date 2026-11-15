@@ -19,6 +19,7 @@ import { OrganizationsController } from './organizations/organizations.controlle
 import { OrganizationsService } from './organizations/organizations.service.js';
 import { Claim } from './claims/claim.entity.js';
 import { FoodCategory, Offer } from './offers/offer.entities.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { OffersModule } from './offers/offers.module.js';
 import { User } from './users/user.entity.js';
 
@@ -69,6 +70,7 @@ class HealthController {
       }),
     }),
     CoreModule,
+    NotificationsModule,
     OffersModule,
   ],
   controllers: [HealthController, AuthController, OrganizationsController, AuditController],

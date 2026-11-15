@@ -4,6 +4,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
 import { DataSource } from 'typeorm';
 import { AuditService } from '../audit/audit.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { setActor } from '../common/request-context.js';
 import { Organization } from '../organizations/organization.entity.js';
 import { presentOrganization } from '../organizations/organization.presenter.js';
@@ -21,6 +22,7 @@ export class AuthService {
     @InjectDataSource() private readonly db: DataSource,
     private readonly jwt: JwtService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Donor or charity self-registration. The organization starts PENDING_VERIFICATION. */
@@ -53,6 +55,7 @@ export class AuthService {
         entityId: user.id,
         after: { email: user.email, role: user.role, organizationId: org.id, orgType: org.type, orgName: org.name },
       });
+      await this.notifications.toAdmins(m, 'org.pending_verification', { orgId: org.id, name: org.name, type: org.type });
       return { user, org };
     }).catch((e: unknown) => {
       // unique index race: two registrations with the same email at the same time

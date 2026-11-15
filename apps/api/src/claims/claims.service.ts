@@ -6,6 +6,7 @@ import { DataSource, In, type EntityManager } from 'typeorm';
 import type { AuditAction } from '../audit/audit.actions.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { AuthUser } from '../auth/auth.types.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { Offer } from '../offers/offer.entities.js';
 import { Organization } from '../organizations/organization.entity.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -42,6 +43,7 @@ export class ClaimsService {
     @InjectDataSource() private readonly db: DataSource,
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // =================================================================== charity
@@ -66,7 +68,10 @@ export class ClaimsService {
       }
 
       // 3. lock the charity: its parallel claims on other offers queue up here (active-claims limit)
-      await m.findOne(Organization, { where: { id: user.orgId! }, lock: { mode: 'pessimistic_write' } });
+      const charity = await m.findOneOrFail(Organization, {
+        where: { id: user.orgId! },
+        lock: { mode: 'pessimistic_write' },
+      });
       const active = await m.find(Claim, {
         where: { charityId: user.orgId!, status: In(ACTIVE_CLAIM_STATUSES) },
         select: { id: true, offerId: true },
@@ -118,6 +123,24 @@ export class ClaimsService {
           offerRemainingKg: offer.remainingKg,
         },
       });
+      if (saved.status === 'PENDING_APPROVAL') {
+        await this.notifications.toOrgs(m, [offer.donorId], 'claim.pending_approval', {
+          claimId: saved.id,
+          offerId: offer.id,
+          title: offer.title,
+          charityName: charity.name,
+          quantityKg: saved.quantityKg,
+          minutesToAnswer: Math.max(1, Math.round((saved.approvalDeadline!.getTime() - now.getTime()) / 60_000)),
+        });
+      } else {
+        await this.notifications.toOrgs(m, [offer.donorId], 'claim.reserved', {
+          claimId: saved.id,
+          offerId: offer.id,
+          title: offer.title,
+          charityName: charity.name,
+          quantityKg: saved.quantityKg,
+        });
+      }
       return saved.id;
     });
     return this.getOne(user, claimId);
@@ -169,6 +192,15 @@ export class ClaimsService {
         entityId: claim.id,
         before: { status: 'PENDING_APPROVAL' },
         after: { status: 'RESERVED', reservedUntil: claim.reservedUntil!.toISOString() },
+      });
+      const { donorName } = await this.names(m, claim, offer);
+      await this.notifications.toOrgs(m, [claim.charityId], 'claim.approved', {
+        claimId: claim.id,
+        offerId: offer.id,
+        title: offer.title,
+        donorName,
+        quantityKg: claim.quantityKg,
+        minutesToPickup: Math.max(1, Math.round((claim.reservedUntil!.getTime() - now.getTime()) / 60_000)),
       });
     });
     return this.getOne(user, claimId);
@@ -225,6 +257,12 @@ export class ClaimsService {
         before: { status: 'RESERVED' },
         after: { status: 'PICKED_UP' },
         metadata: { method: byQr ? 'QR' : 'CODE', quantityKg: claim.quantityKg, offerId: offer.id },
+      });
+      await this.notifications.toOrgs(m, [claim.charityId], 'claim.picked_up', {
+        claimId: claim.id,
+        offerId: offer.id,
+        title: offer.title,
+        quantityKg: claim.quantityKg,
       });
     });
     return this.getOne(user, found.id);
@@ -358,6 +396,45 @@ export class ClaimsService {
         ...opts.metadata,
       },
     });
+    await this.notifyEnd(m, claim, offer, status);
+  }
+
+  /** Who hears about a claim that ended, and what they are told. */
+  private async notifyEnd(m: EntityManager, claim: Claim, offer: Offer, status: Ends) {
+    const { charityName, donorName } = await this.names(m, claim, offer);
+    const base = { claimId: claim.id, offerId: offer.id, title: offer.title };
+    const n = this.notifications;
+    switch (status) {
+      case 'REJECTED':
+        return n.toOrgs(m, [claim.charityId], 'claim.rejected', { ...base, donorName, reason: claim.rejectReason });
+      case 'APPROVAL_TIMEOUT':
+        await n.toOrgs(m, [claim.charityId], 'claim.approval_timeout.charity', { ...base, donorName });
+        return n.toOrgs(m, [offer.donorId], 'claim.approval_timeout.donor', { ...base, charityName });
+      case 'EXPIRED':
+        await n.toOrgs(m, [claim.charityId], 'claim.expired.charity', base);
+        return n.toOrgs(m, [offer.donorId], 'claim.expired.donor', {
+          ...base,
+          charityName,
+          quantityKg: claim.quantityKg,
+        });
+      case 'CANCELLED_BY_CHARITY':
+        return n.toOrgs(m, [offer.donorId], 'claim.cancelled_by_charity', {
+          ...base,
+          charityName,
+          quantityKg: claim.quantityKg,
+        });
+      case 'CANCELLED_BY_DONOR':
+        return n.toOrgs(m, [claim.charityId], 'claim.cancelled_by_donor', { ...base, donorName });
+    }
+  }
+
+  private async names(m: EntityManager, claim: Claim, offer: Offer) {
+    const orgs = await m.find(Organization, {
+      where: { id: In([claim.charityId, offer.donorId]) },
+      select: { id: true, name: true },
+    });
+    const name = (id: string) => orgs.find((o) => o.id === id)?.name ?? '';
+    return { charityName: name(claim.charityId), donorName: name(offer.donorId) };
   }
 
   private reservationFields(_m: EntityManager, now: Date, minutes: number, offer: Offer) {

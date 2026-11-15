@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AuditService } from '../audit/audit.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 
 /**
@@ -25,6 +26,7 @@ export class OfferExpiryService {
     @InjectDataSource() private readonly db: DataSource,
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async expireDue(): Promise<number> {
@@ -32,13 +34,13 @@ export class OfferExpiryService {
     const expired = await this.db.transaction(async (m) => {
       // Wrapped in a CTE: TypeORM returns [rows, count] for a bare UPDATE ... RETURNING,
       // but plain rows for a SELECT.
-      const rows: { id: string; effective_deadline: Date; remaining_kg: string }[] = await m.query(
+      const rows: { id: string; donor_id: string; title: string; effective_deadline: Date; remaining_kg: string }[] = await m.query(
         `WITH expired AS (
            UPDATE offers
               SET status = 'EXPIRED', updated_at = now()
             WHERE status = 'PUBLISHED'
               AND effective_deadline < now() + make_interval(mins => $1)
-          RETURNING id, effective_deadline, remaining_kg
+          RETURNING id, donor_id, title, effective_deadline, remaining_kg
          )
          SELECT * FROM expired`,
         [s.min_transport_minutes],
@@ -55,6 +57,11 @@ export class OfferExpiryService {
             remainingKg: Number(r.remaining_kg),
           },
           actor: { userId: null, role: 'SYSTEM' },
+        });
+        await this.notifications.toOrgs(m, [r.donor_id], 'offer.expired', {
+          offerId: r.id,
+          title: r.title,
+          remainingKg: Number(r.remaining_kg),
         });
       }
       return rows.length;

@@ -11,6 +11,7 @@ import type { AuditAction } from '../audit/audit.actions.js';
 import { AuditService } from '../audit/audit.service.js';
 import { diff } from '../audit/audit.util.js';
 import type { AuthUser } from '../auth/auth.types.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { Organization } from './organization.entity.js';
 import { presentOrganization } from './organization.presenter.js';
 import type { ListOrgsQuery, UpdateSettingsInput, VerifyInput } from './organizations.schemas.js';
@@ -20,6 +21,7 @@ export class OrganizationsService {
   constructor(
     @InjectDataSource() private readonly db: DataSource,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async getMine(user: AuthUser) {
@@ -99,6 +101,11 @@ export class OrganizationsService {
         before,
         after: { status: org.status, statusReason: org.statusReason },
       });
+      if (action === 'org.suspended') {
+        await this.notifications.toOrgs(m, [org.id], 'org.suspended', { orgId: org.id, reason: org.statusReason });
+      } else {
+        await this.notifications.toOrgs(m, [org.id], action, { orgId: org.id });
+      }
       return presentOrganization(org);
     });
   }
