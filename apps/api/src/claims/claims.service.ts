@@ -485,7 +485,7 @@ export class ClaimsService {
 
   private async list(q: ListClaimsQuery, where: Record<string, unknown>, user: AuthUser) {
     const [rows, total] = await this.db.getRepository(Claim).findAndCount({
-      where: { ...where, ...(q.status ? { status: q.status } : {}) },
+      where: { ...where, ...(q.status ? { status: q.status } : {}), ...(q.offerId ? { offerId: q.offerId } : {}) },
       relations: { offer: { donor: true }, charity: true },
       order: { createdAt: 'DESC' },
       take: q.limit,

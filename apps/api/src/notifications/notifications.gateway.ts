@@ -60,11 +60,12 @@ export class NotificationsGateway implements OnGatewayConnection {
   }
 
   emitTo(room: string, event: string, payload: unknown) {
-    this.server.to(room).emit(event, payload);
+    // No server in scripts (application context without HTTP): nothing to push to
+    this.server?.to(room).emit(event, payload);
   }
 
   get connections() {
-    return this.server.sockets.size;
+    return this.server?.sockets.size ?? 0;
   }
 
   onError(e: unknown) {

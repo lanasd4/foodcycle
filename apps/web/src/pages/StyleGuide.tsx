@@ -495,7 +495,16 @@ export default function StyleGuide() {
           <h3 className="mb-3 text-sm font-semibold text-muted-foreground">بطاقة العرض — مرتبة حسب أولوية الصلاحية</h3>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {OFFERS.map((o) => (
-              <OfferCard key={o.id} offer={o} />
+              <OfferCard
+                key={o.id}
+                offer={o}
+                footer={
+                  <>
+                    <Button size="sm" className="flex-1">طلب استلام</Button>
+                    <Button size="sm" variant="outline">التفاصيل</Button>
+                  </>
+                }
+              />
             ))}
           </div>
 

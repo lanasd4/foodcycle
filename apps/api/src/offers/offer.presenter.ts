@@ -42,6 +42,8 @@ export function presentOffer(o: Offer, ctx: PresentContext, extra: { distanceKm?
     remainingMinutes: remainingMinutes(o.effectiveDeadline, ctx.now),
     urgency: urgencyOf(o.effectiveDeadline, ctx.now, ctx.thresholds),
     claimApprovalMode: o.claimApprovalMode,
+    /** What a new claim will get: the offer override, else the restaurant setting */
+    effectiveApprovalMode: o.claimApprovalMode ?? o.donor?.claimApprovalMode ?? null,
     location: { lat, lng },
     pickupAddress: o.pickupAddress,
     area: o.area,

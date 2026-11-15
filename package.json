@@ -14,6 +14,7 @@
     "build:api": "npm run build -w @foodcycle/api",
     "test:api": "npm test -w @foodcycle/api",
     "test:e2e": "npm run test:e2e -w @foodcycle/api",
-    "seed:admin": "npm run seed:admin -w @foodcycle/api"
+    "seed:admin": "npm run seed:admin -w @foodcycle/api",
+    "seed:demo": "npm run seed:demo -w @foodcycle/api"
   }
 }

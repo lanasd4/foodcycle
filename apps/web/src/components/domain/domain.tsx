@@ -8,8 +8,8 @@ import {
   Utensils,
   type LucideIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/primitives";
-import { Button } from "@/components/ui/button";
 import { cn, formatKg, formatRemaining } from "@/lib/utils";
 import { ALLERGEN_LABEL, CLAIM_META, STORAGE_META, URGENCY_META } from "@/lib/labels";
 
@@ -84,14 +84,32 @@ export type OfferCardData = {
   quantityKg: number;
   remainingKg: number;
   remainingMinutes: number;
-  distanceKm: number;
+  /** omitted in the donor view (the donor is the pickup point) */
+  distanceKm?: number;
   area: string;
   storage: StorageCondition;
   allergens: Allergen[];
-  photoUrl?: string;
+  photoUrl?: string | null;
 };
 
-export function OfferCard({ offer, onClaim }: { offer: OfferCardData; onClaim?: () => void }) {
+/**
+ * The main card of the product. `footer` holds the actions of the screen using it
+ * (claim, details…); `badge` replaces the urgency badge (e.g. a status for a closed offer);
+ * `extra` is shown under the quantity (e.g. a match score).
+ */
+export function OfferCard({
+  offer,
+  footer,
+  badge,
+  extra,
+  muted = false,
+}: {
+  offer: OfferCardData;
+  footer?: ReactNode;
+  badge?: ReactNode;
+  extra?: ReactNode;
+  muted?: boolean;
+}) {
   const level = urgencyFor(offer.remainingMinutes);
   const pct = Math.round((offer.remainingKg / offer.quantityKg) * 100);
   return (
@@ -100,9 +118,10 @@ export function OfferCard({ offer, onClaim }: { offer: OfferCardData; onClaim?: 
         "group relative overflow-hidden rounded-xl border bg-card shadow-card transition-shadow hover:shadow-pop",
         // urgency stripe on the inline-start edge (right side in RTL)
         "before:absolute before:inset-y-0 before:start-0 before:w-1",
-        level === "CRITICAL" && "before:bg-urgency-critical",
-        level === "SOON" && "before:bg-urgency-soon",
-        level === "NORMAL" && "before:bg-urgency-normal",
+        !muted && level === "CRITICAL" && "before:bg-urgency-critical",
+        !muted && level === "SOON" && "before:bg-urgency-soon",
+        !muted && level === "NORMAL" && "before:bg-urgency-normal",
+        muted && "before:bg-border opacity-80",
       )}
     >
       <div className="flex gap-3.5 p-4">
@@ -114,15 +133,16 @@ export function OfferCard({ offer, onClaim }: { offer: OfferCardData; onClaim?: 
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <UrgencyBadge remainingMinutes={offer.remainingMinutes} />
+          {badge ?? <UrgencyBadge remainingMinutes={offer.remainingMinutes} />}
           <h3 className="mt-1.5 line-clamp-2 text-[15px] font-semibold leading-snug">{offer.title}</h3>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {offer.donorName} · {offer.category}
+            {[offer.donorName, offer.category].filter(Boolean).join(" · ")}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1 num">
               <MapPin className="size-3.5" />
-              {offer.area} · {offer.distanceKm.toFixed(1)} كم
+              {offer.area}
+              {offer.distanceKm != null && ` · ${offer.distanceKm.toFixed(1)} كم`}
             </span>
             <StorageBadge condition={offer.storage} />
           </div>
@@ -143,16 +163,10 @@ export function OfferCard({ offer, onClaim }: { offer: OfferCardData; onClaim?: 
         <div className="mt-3">
           <AllergenChips allergens={offer.allergens} />
         </div>
+        {extra && <div className="mt-3">{extra}</div>}
       </div>
 
-      <div className="flex items-center gap-2 border-t bg-muted/50 px-4 py-3">
-        <Button size="sm" className="flex-1" onClick={onClaim}>
-          طلب استلام
-        </Button>
-        <Button size="sm" variant="outline">
-          التفاصيل
-        </Button>
-      </div>
+      {footer && <div className="flex items-center gap-2 border-t bg-muted/50 px-4 py-3">{footer}</div>}
     </article>
   );
 }
