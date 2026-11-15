@@ -6,6 +6,7 @@
 |---|---|
 | [FoodCycle-Technical-Plan-v2.md](FoodCycle-Technical-Plan-v2.md) | الخطة التقنية |
 | [DESIGN.md](DESIGN.md) | نظام التصميم |
+| [docs/LEARNING-GUIDE.md](docs/LEARNING-GUIDE.md) | شرح كل مفاهيم المشروع من الصفر |
 
 ## البنية
 

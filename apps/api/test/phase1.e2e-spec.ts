@@ -80,7 +80,7 @@ describe('Phase 1 — identity, verification, audit (e2e)', () => {
       .send({ email: 'owner@yasmin.sy', password: 'wrong-password' })
       .expect(401);
     expect(bad.body.code).toBe('INVALID_CREDENTIALS');
-    await http.post('/api/auth/login').send({ email: 'nobody@x.y', password: 'whatever-123' }).expect(401);
+    await http.post('/api/auth/login').send({ email: 'nobody@example.com', password: 'whatever-123' }).expect(401);
 
     const failed = await db.query(
       `SELECT actor_role, metadata FROM audit_logs WHERE action = 'auth.login.failed' ORDER BY id`,

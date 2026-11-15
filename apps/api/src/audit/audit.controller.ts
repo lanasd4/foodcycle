@@ -11,8 +11,8 @@ const auditQuery = z.object({
   entityId: z.string().max(64).optional(),
   actorId: z.string().uuid().optional(),
   action: z.string().max(64).optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
   /** id of the last row of the previous page (results are newest first) */
   cursor: z.string().regex(/^\d+$/).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
