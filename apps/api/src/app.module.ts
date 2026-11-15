@@ -21,6 +21,7 @@ import { Claim } from './claims/claim.entity.js';
 import { FoodCategory, Offer } from './offers/offer.entities.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { OffersModule } from './offers/offers.module.js';
+import { SettingsController } from './settings/settings.controller.js';
 import { User } from './users/user.entity.js';
 
 @Controller('health')
@@ -73,7 +74,7 @@ class HealthController {
     NotificationsModule,
     OffersModule,
   ],
-  controllers: [HealthController, AuthController, OrganizationsController, AuditController],
+  controllers: [HealthController, AuthController, OrganizationsController, AuditController, SettingsController],
   providers: [
     AuthService,
     OrganizationsService,

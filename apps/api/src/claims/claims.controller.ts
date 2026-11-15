@@ -14,6 +14,7 @@ import {
   type RejectClaimInput,
 } from './claims.schemas.js';
 import { ClaimsService } from './claims.service.js';
+import { RatingsService, rateSchema, type RateInput } from './ratings.js';
 
 const uuid = z.string().uuid();
 
@@ -21,7 +22,10 @@ const uuid = z.string().uuid();
 @ApiBearerAuth()
 @Controller()
 export class ClaimsController {
-  constructor(private readonly claims: ClaimsService) {}
+  constructor(
+    private readonly claims: ClaimsService,
+    private readonly ratings: RatingsService,
+  ) {}
 
   // ---------- charity ----------
 
@@ -87,8 +91,26 @@ export class ClaimsController {
 
   // ---------- shared ----------
 
+  /** After pickup, each side rates the other once (score 1..5, optional comment). */
+  @Post('claims/:id/rating')
+  @Roles('DONOR', 'CHARITY')
+  rate(
+    @CurrentUser() user: AuthUser,
+    @Param('id', { schema: uuid }) id: string,
+    @Body({ schema: rateSchema }) body: RateInput,
+  ) {
+    return this.ratings.rate(user, id, body);
+  }
+
+  @Get('ratings/received')
+  @Roles('DONOR', 'CHARITY')
+  received(@CurrentUser() user: AuthUser) {
+    return this.ratings.received(user);
+  }
+
   @Get('claims/:id')
-  getOne(@CurrentUser() user: AuthUser, @Param('id', { schema: uuid }) id: string) {
-    return this.claims.getOne(user, id);
+  async getOne(@CurrentUser() user: AuthUser, @Param('id', { schema: uuid }) id: string) {
+    const claim = await this.claims.getOne(user, id);
+    return { ...claim, ratedByMe: await this.ratings.ratedByMe(user, id) };
   }
 }

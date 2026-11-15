@@ -9,6 +9,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service.js';
 import { ClaimsService } from '../claims/claims.service.js';
+import { MatchingService } from '../matching/matching.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { diff } from '../audit/audit.util.js';
 import type { AuthUser } from '../auth/auth.types.js';
@@ -62,6 +63,7 @@ export class OffersService {
     private readonly settings: SettingsService,
     private readonly claims: ClaimsService,
     private readonly notifications: NotificationsService,
+    private readonly matching: MatchingService,
   ) {}
 
   async categories() {
@@ -131,13 +133,20 @@ export class OffersService {
         entityId: saved.id,
         after: { ...snapshot(saved), category: category.code },
       });
-      await this.notifications.toNearbyCharities(m, saved, s.service_radius_km, {
-        offerId: saved.id,
-        title: saved.title,
-        donorName: org.name,
-        quantityKg: saved.quantityKg,
-        area: saved.area,
-      });
+      // Alert the best-matched charities (Smart Matching), not everyone nearby
+      const top = (await this.matching.charitiesForOffer(m, saved.id)).slice(0, s.max_offer_notifications);
+      await this.notifications.toOrgs(
+        m,
+        top.map((x) => x.charityId),
+        'offer.new_match',
+        { offerId: saved.id, title: saved.title, donorName: org.name, quantityKg: saved.quantityKg, area: saved.area },
+      );
+      await this.matching.logSuggestions(
+        m,
+        top.map((x) => ({ offerId: saved.id, charityId: x.charityId, score: x.score, components: x.components })),
+        s.weights_version,
+        'NOTIFIED',
+      );
       return saved;
     });
 
@@ -206,6 +215,7 @@ export class OffersService {
       await m.save(offer);
       // active claims end in the same transaction (no penalty for the charities)
       const claimsCancelled = await this.claims.cancelAllForOffer(m, offer);
+      await this.matching.closeForOffers(m, [offer.id], 'IGNORED');
       await this.audit.record(m, {
         action: 'offer.cancelled',
         entityType: 'offer',

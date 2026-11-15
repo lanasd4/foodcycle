@@ -13,6 +13,12 @@ export interface AppSettings {
   weights: { dist: number; type: number; qty: number; time: number; trust: number };
   weights_version: number;
   no_show_penalty: number;
+  avg_speed_kmh: number;
+  timezone: string;
+  trust_prior: number;
+  trust_prior_weight: number;
+  rating_window_days: number;
+  max_offer_notifications: number;
 }
 
 const CACHE_MS = 30_000;

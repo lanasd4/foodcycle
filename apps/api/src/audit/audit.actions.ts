@@ -7,6 +7,7 @@ export const AUDIT_ACTIONS = [
   'org.suspended',
   'org.reactivated',
   'org.settings.updated',
+  'org.needs.updated',
   'offer.created',
   'offer.updated',
   'offer.cancelled',

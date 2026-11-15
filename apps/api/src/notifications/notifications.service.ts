@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { CHARITY_ORG_TYPES } from '@foodcycle/shared';
 import { DataSource, type EntityManager } from 'typeorm';
 import type { AuthUser } from '../auth/auth.types.js';
 import { renderNotification, type NotificationData, type NotificationType } from './notification.templates.js';
@@ -67,31 +66,6 @@ export class NotificationsService {
        SELECT id, $1, $2, $3, $4 FROM users WHERE role = 'ADMIN'`,
       [type, title, body, data],
     );
-  }
-
-  /** New offer: every verified charity within the service radius of the pickup point. */
-  async toNearbyCharities(
-    m: EntityManager,
-    offer: { id: string; location: { coordinates: number[] } },
-    radiusKm: number,
-    data: NotificationData['offer.new_nearby'],
-  ) {
-    const { title, body } = renderNotification('offer.new_nearby', data);
-    const [lng, lat] = offer.location.coordinates;
-    const rows: { n: number }[] = await m.query(
-      `WITH sent AS (
-         INSERT INTO notifications (recipient_org_id, type, title, body, data)
-         SELECT o.id, 'offer.new_nearby', $1, $2, $3
-           FROM organizations o
-          WHERE o.status = 'ACTIVE'
-            AND o.type = ANY($4::org_type[])
-            AND ST_DWithin(o.location, ST_SetSRID(ST_MakePoint($5, $6), 4326)::geography, $7)
-         RETURNING 1
-       )
-       SELECT count(*)::int AS n FROM sent`,
-      [title, body, data, [...CHARITY_ORG_TYPES], lng, lat, radiusKm * 1000],
-    );
-    return rows[0].n;
   }
 
   // ------------------------------------------------------------------ reading

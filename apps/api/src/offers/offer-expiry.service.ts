@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AuditService } from '../audit/audit.service.js';
+import { MatchingService } from '../matching/matching.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 
@@ -27,6 +28,7 @@ export class OfferExpiryService {
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
     private readonly notifications: NotificationsService,
+    private readonly matching: MatchingService,
   ) {}
 
   async expireDue(): Promise<number> {
@@ -64,6 +66,11 @@ export class OfferExpiryService {
           remainingKg: Number(r.remaining_kg),
         });
       }
+      await this.matching.closeForOffers(
+        m,
+        rows.map((r) => r.id),
+        'OFFER_EXPIRED',
+      );
       return rows.length;
     });
     if (expired) this.log.log(`Expired ${expired} offer(s)`);

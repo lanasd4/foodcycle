@@ -1,4 +1,4 @@
-import { approvalDeadline, effectiveApprovalMode, reservationDeadline, trustAfterNoShow } from './claim.rules.js';
+import { approvalDeadline, effectiveApprovalMode, reservationDeadline } from './claim.rules.js';
 
 const now = new Date('2026-11-15T18:00:00Z');
 const min = (m: number) => new Date(now.getTime() + m * 60_000);
@@ -18,9 +18,4 @@ describe('approvalDeadline', () => {
 describe('effectiveApprovalMode', () => {
   it('offer override wins', () => expect(effectiveApprovalMode('MANUAL', 'AUTO')).toBe('MANUAL'));
   it('falls back to the restaurant setting', () => expect(effectiveApprovalMode(null, 'MANUAL')).toBe('MANUAL'));
-});
-
-describe('trustAfterNoShow', () => {
-  it('subtracts the penalty', () => expect(trustAfterNoShow(4, 0.5)).toBe(3.5));
-  it('never goes below zero', () => expect(trustAfterNoShow(0.3, 0.5)).toBe(0));
 });

@@ -17,7 +17,7 @@ const ORG_TYPE_LABEL: Record<string, string> = {
 };
 
 export interface NotificationData {
-  'offer.new_nearby': { offerId: string; title: string; donorName: string; quantityKg: number; area: string };
+  'offer.new_match': { offerId: string; title: string; donorName: string; quantityKg: number; area: string };
   'offer.expired': { offerId: string; title: string; remainingKg: number };
   'claim.pending_approval': { claimId: string; offerId: string; title: string; charityName: string; quantityKg: number; minutesToAnswer: number };
   'claim.reserved': { claimId: string; offerId: string; title: string; charityName: string; quantityKg: number };
@@ -30,6 +30,7 @@ export interface NotificationData {
   'claim.cancelled_by_charity': { claimId: string; offerId: string; title: string; charityName: string; quantityKg: number };
   'claim.cancelled_by_donor': { claimId: string; offerId: string; title: string; donorName: string };
   'claim.picked_up': { claimId: string; offerId: string; title: string; quantityKg: number };
+  'rating.received': { claimId: string; fromName: string; score: number; title: string };
   'org.pending_verification': { orgId: string; name: string; type: string };
   'org.verified': { orgId: string };
   'org.suspended': { orgId: string; reason: string | null };
@@ -40,8 +41,8 @@ export type NotificationType = keyof NotificationData;
 type Renderers = { [T in NotificationType]: (d: NotificationData[T]) => { title: string; body: string } };
 
 const RENDER: Renderers = {
-  'offer.new_nearby': (d) => ({
-    title: 'عرض جديد قريب منك',
+  'offer.new_match': (d) => ({
+    title: 'عرض جديد مناسب لكم',
     body: `${d.donorName} نشر «${d.title}» (${kg(d.quantityKg)}) في ${d.area}.`,
   }),
   'offer.expired': (d) => ({
@@ -91,6 +92,10 @@ const RENDER: Renderers = {
   'claim.picked_up': (d) => ({
     title: 'تم تأكيد الاستلام',
     body: `تم استلام ${kg(d.quantityKg)} من «${d.title}». شكراً لكم!`,
+  }),
+  'rating.received': (d) => ({
+    title: 'وصلكم تقييم جديد',
+    body: `قيّم ${d.fromName} عملية «${d.title}» بـ ${d.score} من 5.`,
   }),
   'org.pending_verification': (d) => ({
     title: 'جهة جديدة بانتظار التحقق',

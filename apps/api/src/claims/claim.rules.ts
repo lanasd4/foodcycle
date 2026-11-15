@@ -27,8 +27,3 @@ export function approvalDeadline(
 export function effectiveApprovalMode<M extends string>(offerMode: M | null, orgMode: M): M {
   return offerMode ?? orgMode;
 }
-
-/** New trust score after a no-show, never below 0. */
-export function trustAfterNoShow(current: number, penalty: number): number {
-  return Math.max(0, Math.round((current - penalty) * 100) / 100);
-}

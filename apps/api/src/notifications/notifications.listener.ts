@@ -1,4 +1,4 @@
-import { Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
+import { Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import pg from 'pg';
 import type { Env } from '../config/env.js';
@@ -18,7 +18,7 @@ const CHANNEL = 'fc_notifications';
  * the sockets connected to it, so no extra pub/sub (like a Redis adapter) is needed.
  */
 @Injectable()
-export class NotificationsListener implements OnApplicationBootstrap, OnApplicationShutdown {
+export class NotificationsListener implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly log = new Logger(NotificationsListener.name);
   private client: pg.Client | null = null;
   private stopped = false;
@@ -34,7 +34,8 @@ export class NotificationsListener implements OnApplicationBootstrap, OnApplicat
     await this.connect();
   }
 
-  async onApplicationShutdown() {
+  /** Runs first in the shutdown sequence, before the database pool is closed. */
+  async onModuleDestroy() {
     this.stopped = true;
     await this.client?.end().catch(() => undefined);
   }
@@ -68,12 +69,14 @@ export class NotificationsListener implements OnApplicationBootstrap, OnApplicat
   }
 
   private async push(id: string) {
+    if (this.stopped) return;
     try {
       const row = await this.notifications.byId(id);
       if (!row) return;
       const room = row.recipient_org_id ? orgRoom(row.recipient_org_id) : userRoom(row.recipient_user_id!);
       this.gateway.emitTo(room, 'notification', presentNotification(row));
     } catch (e) {
+      if (this.stopped) return; // shutting down: the row stays in the notification center
       this.log.error(`Failed to push notification ${id}: ${(e as Error).message}`);
     }
   }

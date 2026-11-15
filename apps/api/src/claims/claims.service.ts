@@ -6,13 +6,15 @@ import { DataSource, In, type EntityManager } from 'typeorm';
 import type { AuditAction } from '../audit/audit.actions.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { AuthUser } from '../auth/auth.types.js';
+import { MatchingService } from '../matching/matching.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { Offer } from '../offers/offer.entities.js';
 import { Organization } from '../organizations/organization.entity.js';
+import { TrustService } from '../organizations/trust.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { ACTIVE_CLAIM_STATUSES, Claim } from './claim.entity.js';
 import { presentClaim } from './claim.presenter.js';
-import { approvalDeadline, effectiveApprovalMode, reservationDeadline, trustAfterNoShow } from './claim.rules.js';
+import { approvalDeadline, effectiveApprovalMode, reservationDeadline } from './claim.rules.js';
 import type { ConfirmPickupInput, CreateClaimInput, ListClaimsQuery, RejectClaimInput } from './claims.schemas.js';
 
 type Ends = Extract<
@@ -44,6 +46,8 @@ export class ClaimsService {
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
     private readonly notifications: NotificationsService,
+    private readonly matching: MatchingService,
+    private readonly trust: TrustService,
   ) {}
 
   // =================================================================== charity
@@ -108,6 +112,7 @@ export class ClaimsService {
       }
       if (claim.status === 'RESERVED') await this.assignPickupCode(m, claim);
       const saved = await m.save(claim);
+      await this.matching.markClaimed(m, offer.id, saved.charityId);
 
       await this.audit.record(m, {
         action: 'claim.created',
@@ -327,7 +332,7 @@ export class ClaimsService {
             approvalTimeouts++;
           } else if (claim.status === 'RESERVED' && claim.reservedUntil! <= now) {
             await this.end(m, claim, offer, 'EXPIRED', { returnQuantity: true });
-            await this.penalizeNoShow(m, claim.charityId, s.no_show_penalty, claim.id);
+            await this.trust.recompute(m, claim.charityId, { reason: 'NO_SHOW', claimId: claim.id });
             noShows++;
           }
           // otherwise: changed since we listed it (approved, picked up...) -> skip
@@ -464,24 +469,8 @@ export class ClaimsService {
     if (stillActive === 0) {
       offer.status = 'COMPLETED';
       await m.save(offer);
+      await this.matching.closeForOffers(m, [offer.id], 'IGNORED');
     }
-  }
-
-  private async penalizeNoShow(m: EntityManager, charityId: string, penalty: number, claimId: string) {
-    const org = await m.findOne(Organization, { where: { id: charityId }, lock: { mode: 'pessimistic_write' } });
-    if (!org) return;
-    const before = org.trustScore;
-    org.trustScore = trustAfterNoShow(before, penalty);
-    if (org.trustScore === before) return;
-    await m.save(org);
-    await this.audit.record(m, {
-      action: 'trust_score.changed',
-      entityType: 'organization',
-      entityId: org.id,
-      before: { trustScore: before },
-      after: { trustScore: org.trustScore },
-      metadata: { reason: 'NO_SHOW', claimId },
-    });
   }
 
   private async secretsOf(id: string) {

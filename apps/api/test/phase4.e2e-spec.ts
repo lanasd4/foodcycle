@@ -156,19 +156,19 @@ describe('Phase 4 — real-time notifications (e2e)', () => {
 
     it('reach verified charities within the service radius only', async () => {
       const offerId = await publish();
-      const n = await near.waitFor('offer.new_nearby');
-      expect(n).toMatchObject({ title: 'عرض جديد قريب منك', data: { offerId, area: 'المزة' } });
+      const n = await near.waitFor('offer.new_match');
+      expect(n).toMatchObject({ title: 'عرض جديد مناسب لكم', data: { offerId, area: 'المزة' } });
       expect(n.body).toBe('مطعم الياسمين نشر «خبز عربي» (20 كغ) في المزة.');
 
       await settle();
-      expect(far.received.some((x) => x.type === 'offer.new_nearby')).toBe(false);
-      expect(pendingNear.received.some((x) => x.type === 'offer.new_nearby')).toBe(false);
+      expect(far.received.some((x) => x.type === 'offer.new_match')).toBe(false);
+      expect(pendingNear.received.some((x) => x.type === 'offer.new_match')).toBe(false);
     });
 
     it('every open tab of the same account receives it', async () => {
       const secondTab = await connect(nearCharity);
       await publish({ title: 'كعك' });
-      const n = await secondTab.waitFor('offer.new_nearby');
+      const n = await secondTab.waitFor('offer.new_match');
       expect(n.body).toContain('كعك');
     });
   });
