@@ -1,4 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
+import { AnalyticsController } from '../analytics/analytics.controller.js';
+import { AnalyticsService } from '../analytics/analytics.service.js';
 import { Module } from '@nestjs/common';
 import { ClaimsController } from '../claims/claims.controller.js';
 import { ClaimsService } from '../claims/claims.service.js';
@@ -16,7 +18,7 @@ import { OffersService } from './offers.service.js';
 @Module({
   imports: [BullModule.registerQueue({ name: MAINTENANCE_QUEUE })],
   // MatchingController first: GET /offers/recommended must win over GET /offers/:id
-  controllers: [MatchingController, OffersController, ClaimsController],
+  controllers: [MatchingController, OffersController, ClaimsController, AnalyticsController],
   providers: [
     OffersService,
     ClaimsService,
@@ -25,6 +27,7 @@ import { OffersService } from './offers.service.js';
     CharityNeedsService,
     RatingsService,
     TrustService,
+    AnalyticsService,
     MaintenanceProcessor,
     JobsBootstrap,
   ],

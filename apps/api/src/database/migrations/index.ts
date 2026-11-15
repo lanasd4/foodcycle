@@ -3,6 +3,7 @@ import { OffersAndSettings1731700000000 } from './1731700000000-OffersAndSetting
 import { Claims1731800000000 } from './1731800000000-Claims.js';
 import { Notifications1731900000000 } from './1731900000000-Notifications.js';
 import { MatchingAndRatings1732000000000 } from './1732000000000-MatchingAndRatings.js';
+import { AnalyticsIndexes1732100000000 } from './1732100000000-AnalyticsIndexes.js';
 
 /** Every migration, in order. Listed explicitly (no globs) so it works the same in ESM, tests and builds. */
 export const MIGRATIONS = [
@@ -11,4 +12,5 @@ export const MIGRATIONS = [
   Claims1731800000000,
   Notifications1731900000000,
   MatchingAndRatings1732000000000,
+  AnalyticsIndexes1732100000000,
 ];
