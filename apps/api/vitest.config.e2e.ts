@@ -17,6 +17,7 @@ export default defineConfig({
         process.env.TEST_DATABASE_URL ?? 'postgres://foodcycle:foodcycle_dev@localhost:5433/foodcycle_test',
       JWT_SECRET: 'e2e-test-secret-e2e-test-secret-e2e-test',
       CORS_ORIGIN: 'http://localhost:5173',
+      BULL_PREFIX: 'fc-test',
     },
   },
 });

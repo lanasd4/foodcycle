@@ -7,7 +7,6 @@ import { NestFactory } from '@nestjs/core';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
 import type { DataSource } from 'typeorm';
-import { AppModule } from '../app.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { User } from '../users/user.entity.js';
 
@@ -18,6 +17,9 @@ if (!email || !password || password.length < 12) {
   process.exit(1);
 }
 
+// A one-off script must not start background workers (env must be set before the app module loads)
+process.env.JOBS_ENABLED = 'false';
+const { AppModule } = await import('../app.module.js');
 const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error'] });
 const db = app.get<DataSource>(getDataSourceToken());
 const audit = app.get(AuditService);
