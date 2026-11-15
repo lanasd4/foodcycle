@@ -12,6 +12,7 @@ export interface AppSettings {
   max_active_claims_per_charity: number;
   weights: { dist: number; type: number; qty: number; time: number; trust: number };
   weights_version: number;
+  no_show_penalty: number;
 }
 
 const CACHE_MS = 30_000;

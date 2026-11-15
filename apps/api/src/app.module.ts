@@ -17,6 +17,7 @@ import { MIGRATIONS } from './database/migrations/index.js';
 import { Organization } from './organizations/organization.entity.js';
 import { OrganizationsController } from './organizations/organizations.controller.js';
 import { OrganizationsService } from './organizations/organizations.service.js';
+import { Claim } from './claims/claim.entity.js';
 import { FoodCategory, Offer } from './offers/offer.entities.js';
 import { OffersModule } from './offers/offers.module.js';
 import { User } from './users/user.entity.js';
@@ -41,7 +42,7 @@ class HealthController {
       useFactory: (cfg: ConfigService<Env, true>) => ({
         type: 'postgres',
         url: cfg.get('DATABASE_URL', { infer: true }),
-        entities: [User, Organization, AuditLog, FoodCategory, Offer],
+        entities: [User, Organization, AuditLog, FoodCategory, Offer, Claim],
         migrations: MIGRATIONS,
         migrationsRun: true,
         synchronize: false,

@@ -4,10 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import type { Job, Queue } from 'bullmq';
 import { runWithContext } from '../common/request-context.js';
 import type { Env } from '../config/env.js';
+import { ClaimsService } from '../claims/claims.service.js';
 import { OfferExpiryService } from '../offers/offer-expiry.service.js';
 
 export const MAINTENANCE_QUEUE = 'maintenance';
 export const EXPIRE_OFFERS_JOB = 'expire-offers';
+export const SWEEP_CLAIMS_JOB = 'sweep-claims';
 
 /**
  * Worker for recurring maintenance jobs. Starts only when JOBS_ENABLED=true,
@@ -17,13 +19,18 @@ export const EXPIRE_OFFERS_JOB = 'expire-offers';
 export class MaintenanceProcessor extends WorkerHost {
   private readonly log = new Logger('Jobs');
 
-  constructor(private readonly expiry: OfferExpiryService) {
+  constructor(
+    private readonly expiry: OfferExpiryService,
+    private readonly claims: ClaimsService,
+  ) {
     super();
   }
 
   async process(job: Job): Promise<unknown> {
     return runWithContext({ requestId: `job:${job.name}:${job.id}`, actorRole: 'SYSTEM' }, async () => {
       switch (job.name) {
+        case SWEEP_CLAIMS_JOB:
+          return this.claims.sweepExpired();
         case EXPIRE_OFFERS_JOB:
           return { expired: await this.expiry.expireDue() };
         default:
@@ -50,6 +57,12 @@ export class JobsBootstrap implements OnApplicationBootstrap {
       EXPIRE_OFFERS_JOB,
       { every: 60_000 },
       { name: EXPIRE_OFFERS_JOB, opts: { removeOnComplete: 100, removeOnFail: 500 } },
+    );
+    // Claims every 30 s: a reservation or approval window is short, so its end should not lag
+    await this.queue.upsertJobScheduler(
+      SWEEP_CLAIMS_JOB,
+      { every: 30_000 },
+      { name: SWEEP_CLAIMS_JOB, opts: { removeOnComplete: 100, removeOnFail: 500 } },
     );
     void this.processor.worker.run();
   }

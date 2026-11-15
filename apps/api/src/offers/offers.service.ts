@@ -8,6 +8,7 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service.js';
+import { ClaimsService } from '../claims/claims.service.js';
 import { diff } from '../audit/audit.util.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { Organization } from '../organizations/organization.entity.js';
@@ -58,6 +59,7 @@ export class OffersService {
     @InjectDataSource() private readonly db: DataSource,
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
+    private readonly claims: ClaimsService,
   ) {}
 
   async categories() {
@@ -189,17 +191,19 @@ export class OffersService {
       if (offer.status !== 'PUBLISHED' && offer.status !== 'RESERVED') {
         throw new ConflictException({ code: 'OFFER_NOT_CANCELLABLE', status: offer.status });
       }
-      // Phase 3: active claims on this offer move to CANCELLED_BY_DONOR here, in the same transaction.
       const before = { status: offer.status, cancelReason: offer.cancelReason };
       offer.status = 'CANCELLED';
       offer.cancelReason = input.reason ?? null;
       await m.save(offer);
+      // active claims end in the same transaction (no penalty for the charities)
+      const claimsCancelled = await this.claims.cancelAllForOffer(m, offer);
       await this.audit.record(m, {
         action: 'offer.cancelled',
         entityType: 'offer',
         entityId: offer.id,
         before,
         after: { status: offer.status, cancelReason: offer.cancelReason },
+        metadata: { claimsCancelled },
       });
     });
     return this.findAndPresent(id);

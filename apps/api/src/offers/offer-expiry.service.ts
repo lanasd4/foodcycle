@@ -12,8 +12,10 @@ import { SettingsService } from '../settings/settings.service.js';
  * still PUBLISHED, and Postgres re-checks that condition after waiting for
  * any row lock, so an offer is never expired (or audited) twice.
  *
- * Phase 3 note: offers that still have active claims will need their own
- * rule here (claims keep their pickup window until reserved_until).
+ * Active claims are not touched: each one keeps its own pickup window
+ * (reserved_until is never later than the offer deadline) and is ended by
+ * the claims sweep. A fully reserved offer (RESERVED) is not expired here;
+ * if its claims end, it returns to PUBLISHED and is expired on the next run.
  */
 @Injectable()
 export class OfferExpiryService {
