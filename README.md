@@ -11,6 +11,7 @@
 
 | المستند | المحتوى |
 |---|---|
+| [docs/PROJECT-GUIDE.md](docs/PROJECT-GUIDE.md) | **ابدأ هنا**: شرح المشروع بالمخططات والـ ERD، التشغيل خطوة بخطوة، الحسابات التجريبية، وشرح كل ملف |
 | [FoodCycle-Technical-Plan-v2.md](FoodCycle-Technical-Plan-v2.md) | الخطة التقنية وسجل قرارات التنفيذ (القسم 15) |
 | [docs/ALGORITHMS.md](docs/ALGORITHMS.md) | شرح الخوارزميات بالصيغ وأمثلة محسوبة |
 | [docs/DEMO.md](docs/DEMO.md) | سيناريو العرض التجريبي (15 دقيقة) |
