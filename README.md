@@ -90,6 +90,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec api node dist/scripts/seed-admin.js
 ```
 
+- **مُختبرة فعلياً** محلياً: الواجهة، الـ API، الإشعارات اللحظية، الـ PWA، والـ migrations التلقائية.
 - **nginx** يخدم الواجهة ويوجّه `/api` و `/socket.io` للـ API: أصل واحد للمتصفح.
 - الـ migrations تُطبَّق تلقائياً عند تشغيل الـ API.
 - Swagger معطّل في الإنتاج.
