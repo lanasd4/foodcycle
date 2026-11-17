@@ -95,7 +95,9 @@ function Scanner({ onCode }: { onCode: (text: string) => void }) {
   const last = useRef('');
   // latest callback without restarting the camera on every render
   const onCodeRef = useRef(onCode);
-  onCodeRef.current = onCode;
+  useEffect(() => {
+    onCodeRef.current = onCode;
+  }, [onCode]);
 
   useEffect(() => {
     const el = ref.current;

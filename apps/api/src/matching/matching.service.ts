@@ -171,8 +171,17 @@ export class MatchingService {
         WHERE ch.id = $1`,
       [charityId, p.timezone],
     );
-    const candidates: { id: string; distance_km: number }[] = await this.db.query(
-      `SELECT off.id, ST_Distance(off.location, ch.location) / 1000 AS distance_km
+    // 1) score every candidate from plain columns (cheap) ...
+    const candidates: {
+      id: string;
+      category_id: number;
+      remaining_kg: string;
+      ready_at: Date;
+      effective_deadline: Date;
+      distance_km: number;
+    }[] = await this.db.query(
+      `SELECT off.id, off.category_id, off.remaining_kg, off.ready_at, off.effective_deadline,
+              ST_Distance(off.location, ch.location) / 1000 AS distance_km
          FROM offers off, organizations ch
         WHERE ch.id = $1
           AND off.status = 'PUBLISHED'
@@ -187,34 +196,51 @@ export class MatchingService {
     );
     if (candidates.length === 0) return { items: [], weightsVersion: p.weightsVersion };
 
+    const side = toCharitySide(profile);
+    const ranked = candidates
+      .map((c) => ({
+        c,
+        res: evaluateMatch(
+          {
+            categoryId: c.category_id,
+            remainingKg: Number(c.remaining_kg),
+            readyAt: new Date(c.ready_at),
+            effectiveDeadline: new Date(c.effective_deadline),
+          },
+          { ...side, distanceKm: Number(c.distance_km) },
+          p,
+        ),
+      }))
+      .filter((x): x is { c: (typeof candidates)[number]; res: Extract<ReturnType<typeof evaluateMatch>, { eligible: true }> } => x.res.eligible)
+      .sort((a, b) => b.res.score - a.res.score)
+      .slice(0, limit);
+    if (ranked.length === 0) return { items: [], weightsVersion: p.weightsVersion };
+
+    // 2) ... then load full offers only for the few that will be shown
     const offers = await this.db.getRepository(Offer).find({
-      where: { id: In(candidates.map((c) => c.id)) },
+      where: { id: In(ranked.map((x) => x.c.id)) },
       relations: { category: true, donor: true },
     });
-    const distance = new Map(candidates.map((c) => [c.id, Number(c.distance_km)]));
+    const byId = new Map(offers.map((o) => [o.id, o]));
     const s = await this.settings.all();
     const ctx = {
       now: p.now,
       thresholds: { criticalMinutes: s.urgency_critical_minutes, soonMinutes: s.urgency_soon_minutes },
     };
-
-    const scored = [];
-    for (const o of offers) {
-      const km = Math.round(distance.get(o.id)! * 10) / 10;
-      const res = evaluateMatch(o, { ...toCharitySide(profile), distanceKm: distance.get(o.id)! }, p);
-      if (!res.eligible) continue;
-      scored.push({
-        offer: presentOffer(o, ctx, { distanceKm: km }),
-        match: {
-          score: res.score,
-          components: res.components,
-          travelMinutes: res.travelMinutes,
-          reasons: reasonTexts(res.reasons, 'charity', { km, trust: Number(profile.trust) }),
-        },
+    const items = ranked
+      .filter((x) => byId.has(x.c.id))
+      .map(({ c, res }) => {
+        const km = Math.round(Number(c.distance_km) * 10) / 10;
+        return {
+          offer: presentOffer(byId.get(c.id)!, ctx, { distanceKm: km }),
+          match: {
+            score: res.score,
+            components: res.components,
+            travelMinutes: res.travelMinutes,
+            reasons: reasonTexts(res.reasons, 'charity', { km, trust: Number(profile.trust) }),
+          },
+        };
       });
-    }
-    scored.sort((a, b) => b.match.score - a.match.score);
-    const items = scored.slice(0, limit);
 
     await this.logSuggestions(
       this.db.manager,

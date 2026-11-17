@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { FormError, PageHeader, Spinner } from '@/components/ui/feedback';
+import { ErrorState, FormError, PageHeader, Spinner } from '@/components/ui/feedback';
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/lib/api';
@@ -34,17 +34,22 @@ const WEIGHTS: { key: keyof Weights; label: string }[] = [
 
 /** Tune thresholds and matching weights without touching code. Every change is audited. */
 export default function AdminSettings() {
+  const q = useQuery({ queryKey: ['settings'], queryFn: () => api.get<Settings>('/admin/settings') });
+  if (q.isPending) return <Spinner />;
+  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
+  // re-mount after each save so the form starts from the saved values
+  return <SettingsForm key={q.data.weights_version + JSON.stringify(q.data)} settings={q.data} />;
+}
+
+function SettingsForm({ settings }: { settings: Settings }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['settings'], queryFn: () => api.get<Settings>('/admin/settings') });
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [weights, setWeights] = useState<Record<keyof Weights, string>>({ dist: '', type: '', qty: '', time: '', trust: '' });
-
-  useEffect(() => {
-    if (!q.data) return;
-    setValues(Object.fromEntries(NUMBERS.map((n) => [n.key, String(q.data[n.key])])));
-    setWeights(Object.fromEntries(WEIGHTS.map((w) => [w.key, String(q.data.weights[w.key])])) as Record<keyof Weights, string>);
-  }, [q.data]);
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(NUMBERS.map((n) => [n.key, String(settings[n.key])])),
+  );
+  const [weights, setWeights] = useState<Record<keyof Weights, string>>(
+    () => Object.fromEntries(WEIGHTS.map((w) => [w.key, String(settings.weights[w.key])])) as Record<keyof Weights, string>,
+  );
 
   const sum = WEIGHTS.reduce((a, w) => a + (Number(weights[w.key]) || 0), 0);
   const sumOk = Math.abs(sum - 1) < 0.001;
@@ -52,9 +57,9 @@ export default function AdminSettings() {
   const save = useMutation({
     mutationFn: () => {
       const body: Record<string, unknown> = {};
-      for (const n of NUMBERS) if (Number(values[n.key]) !== Number(q.data![n.key])) body[n.key] = Number(values[n.key]);
+      for (const n of NUMBERS) if (Number(values[n.key]) !== Number(settings[n.key])) body[n.key] = Number(values[n.key]);
       const w = Object.fromEntries(WEIGHTS.map((x) => [x.key, Number(weights[x.key])])) as Weights;
-      if (WEIGHTS.some((x) => w[x.key] !== q.data!.weights[x.key])) body.weights = w;
+      if (WEIGHTS.some((x) => w[x.key] !== settings.weights[x.key])) body.weights = w;
       return api.patch<Settings>('/admin/settings', body);
     },
     onSuccess: (s) => {
@@ -63,10 +68,9 @@ export default function AdminSettings() {
     },
   });
 
-  if (q.isPending) return <Spinner />;
   const dirty =
-    NUMBERS.some((n) => Number(values[n.key]) !== Number(q.data![n.key])) ||
-    WEIGHTS.some((w) => Number(weights[w.key]) !== q.data!.weights[w.key]);
+    NUMBERS.some((n) => Number(values[n.key]) !== Number(settings[n.key])) ||
+    WEIGHTS.some((w) => Number(weights[w.key]) !== settings.weights[w.key]);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -96,7 +100,7 @@ export default function AdminSettings() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                أوزان المطابقة <Badge tone="outline" className="num">v{q.data!.weights_version}</Badge>
+                أوزان المطابقة <Badge tone="outline" className="num">v{settings.weights_version}</Badge>
               </CardTitle>
               <CardDescription>مجموعها يجب أن يساوي 1. تغييرها يرفع رقم النسخة.</CardDescription>
             </CardHeader>

@@ -39,7 +39,8 @@ export class MatchingController {
     if (!offer || (user.role !== 'ADMIN' && offer.donorId !== user.orgId)) {
       throw new NotFoundException({ code: 'OFFER_NOT_FOUND' });
     }
-    const items = await this.matching.charitiesForOffer(this.db.manager, id);
+    // the screen shows the best few; logging every candidate on each view would flood the suggestion log
+    const items = (await this.matching.charitiesForOffer(this.db.manager, id)).slice(0, 20);
     const p = await this.matching.params();
     await this.matching.logSuggestions(
       this.db.manager,

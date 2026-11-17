@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Heart, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { FormError, PageHeader, Spinner } from '@/components/ui/feedback';
+import { ErrorState, FormError, PageHeader, Spinner } from '@/components/ui/feedback';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input, Switch } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/lib/api';
@@ -14,34 +14,25 @@ import { cn } from '@/lib/utils';
  * Feeds the Smart Matching: better needs = better suggestions and fewer irrelevant alerts.
  */
 export default function NeedsPage() {
-  const toast = useToast();
-  const qc = useQueryClient();
   const categories = useQuery({ queryKey: ['categories'], queryFn: () => api.get<Category[]>('/food-categories') });
   const needs = useQuery({ queryKey: ['needs'], queryFn: () => api.get<CharityNeeds | null>('/charity-needs/me') });
+  if (categories.isPending || needs.isPending) return <Spinner />;
+  if (categories.isError || needs.isError) return <ErrorState error={categories.error ?? needs.error} />;
+  // the form starts from the loaded values; it is not re-synced while the user edits
+  return <NeedsForm categories={categories.data} needs={needs.data} />;
+}
 
-  const [accepted, setAccepted] = useState<string[]>([]);
-  const [preferred, setPreferred] = useState<string[]>([]);
-  const [capacity, setCapacity] = useState('');
-  const [hoursOn, setHoursOn] = useState(false);
-  const [start, setStart] = useState('09:00');
-  const [end, setEnd] = useState('21:00');
+function NeedsForm({ categories, needs }: { categories: Category[]; needs: CharityNeeds | null }) {
+  const toast = useToast();
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    if (!needs.isSuccess) return;
-    const n = needs.data;
-    if (n) {
-      setAccepted(n.acceptedCategories);
-      setPreferred(n.preferredCategories);
-      setCapacity(n.dailyCapacityKg ? String(n.dailyCapacityKg) : '');
-      setHoursOn(!!n.pickupHours);
-      if (n.pickupHours) {
-        setStart(n.pickupHours.start);
-        setEnd(n.pickupHours.end);
-      }
-    } else if (categories.data) {
-      setAccepted(categories.data.map((c) => c.code));
-    }
-  }, [needs.isSuccess, needs.data, categories.data]);
+  // no needs yet: start with every category accepted
+  const [accepted, setAccepted] = useState<string[]>(() => needs?.acceptedCategories ?? categories.map((c) => c.code));
+  const [preferred, setPreferred] = useState<string[]>(() => needs?.preferredCategories ?? []);
+  const [capacity, setCapacity] = useState(() => (needs?.dailyCapacityKg ? String(needs.dailyCapacityKg) : ''));
+  const [hoursOn, setHoursOn] = useState(() => !!needs?.pickupHours);
+  const [start, setStart] = useState(() => needs?.pickupHours?.start ?? '09:00');
+  const [end, setEnd] = useState(() => needs?.pickupHours?.end ?? '21:00');
 
   const save = useMutation({
     mutationFn: () =>
@@ -57,8 +48,6 @@ export default function NeedsPage() {
       void qc.invalidateQueries({ queryKey: ['recommended'] });
     },
   });
-
-  if (categories.isPending || needs.isPending) return <Spinner />;
 
   function toggleAccepted(code: string) {
     setAccepted((xs) => (xs.includes(code) ? xs.filter((x) => x !== code) : [...xs, code]));
@@ -77,7 +66,7 @@ export default function NeedsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2">
-            {categories.data!.map((c) => {
+            {categories.map((c) => {
               const on = accepted.includes(c.code);
               const fav = preferred.includes(c.code);
               return (

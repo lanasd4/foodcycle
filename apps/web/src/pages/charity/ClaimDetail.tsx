@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import { ArrowRight, Ban, Clock, Hourglass, MapPin, Navigation, Star } from 'lucide-react';
 import { RatingDialog } from '@/components/app/RatingDialog';
-import { useCountdown } from '@/components/app/IncomingClaim';
+import { useCountdown } from '@/lib/clock';
 import { AllergenChips, ClaimStatusBadge, StorageBadge } from '@/components/domain/domain';
 import { PointsMap } from '@/components/map/Map';
 import { Button } from '@/components/ui/button';

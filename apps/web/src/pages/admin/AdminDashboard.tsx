@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   BarElement,
@@ -60,24 +60,25 @@ function delta(v: number | null) {
 
 export default function AdminDashboard() {
   const [days, setDays] = useState<keyof typeof PERIODS>(30);
-  const period = useMemo(() => {
+  // the period ends "now" at fetch time, so a refetch is never stale
+  const period = () => {
     const to = new Date();
     return { from: new Date(to.getTime() - days * 86_400_000).toISOString(), to: to.toISOString() };
-  }, [days]);
+  };
   const bucket = days <= 30 ? 'day' : days <= 90 ? 'week' : 'month';
 
-  const summary = useQuery({ queryKey: ['analytics', 'summary', days], queryFn: () => api.get<Summary>('/analytics/summary', period) });
+  const summary = useQuery({ queryKey: ['analytics', 'summary', days], queryFn: () => api.get<Summary>('/analytics/summary', period()) });
   const trend = useQuery({
     queryKey: ['analytics', 'trend', days],
-    queryFn: () => api.get<{ points: { start: string; kgSaved: number }[] }>('/analytics/trend', { ...period, bucket }),
+    queryFn: () => api.get<{ points: { start: string; kgSaved: number }[] }>('/analytics/trend', { ...period(), bucket }),
   });
   const donors = useQuery({
     queryKey: ['analytics', 'donors', days],
-    queryFn: () => api.get<{ items: TopDonor[] }>('/analytics/top-donors', { ...period, limit: 5 }),
+    queryFn: () => api.get<{ items: TopDonor[] }>('/analytics/top-donors', { ...period(), limit: 5 }),
   });
   const areas = useQuery({
     queryKey: ['analytics', 'areas', days],
-    queryFn: () => api.get<{ items: AreaNeed[] }>('/analytics/need-by-area', period),
+    queryFn: () => api.get<{ items: AreaNeed[] }>('/analytics/need-by-area', period()),
   });
 
   const s = summary.data;

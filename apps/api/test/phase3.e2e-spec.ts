@@ -165,7 +165,7 @@ describe('Phase 3 — claims, approval, pickup (e2e)', () => {
     it('10 simultaneous claims of 3 kg on an 18 kg offer: exactly 6 succeed', async () => {
       const offerId = await publish(donor);
       const results = await Promise.all(charities.map((t) => claim(t, offerId, 3)));
-      const codes = results.map((r) => r.status).sort();
+      const codes = results.map((r) => r.status);
       expect(codes.filter((s) => s === 201)).toHaveLength(6);
       expect(codes.filter((s) => s === 409)).toHaveLength(4);
       expect(await offerRow(offerId)).toEqual({ status: 'RESERVED', remaining: 0 });
@@ -246,7 +246,7 @@ describe('Phase 3 — claims, approval, pickup (e2e)', () => {
         http.post(`/api/claims/${c.id}/approve`).set(auth(donor)),
         http.post(`/api/claims/${c.id}/reject`).set(auth(donor)).send({}),
       ]);
-      expect([a.status, r.status].sort()).toEqual([200, 409]);
+      expect([a.status, r.status].sort((x, y) => x - y)).toEqual([200, 409]);
     });
 
     it('another donor cannot approve', async () => {

@@ -5,7 +5,7 @@ import { ClaimStatusBadge } from '@/components/domain/domain';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState, ListSkeleton, PageHeader } from '@/components/ui/feedback';
 import { Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/primitives';
-import { useCountdown } from '@/components/app/IncomingClaim';
+import { useCountdown } from '@/lib/clock';
 import { api } from '@/lib/api';
 import { fmtCountdown, fmtKg, fmtRelative } from '@/lib/format';
 import type { Claim, Page } from '@/lib/types';

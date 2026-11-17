@@ -319,7 +319,6 @@ export class ClaimsService {
         ORDER BY created_at
         LIMIT 500`,
     );
-    const s = await this.settings.all();
     let approvalTimeouts = 0;
     let noShows = 0;
 

@@ -10,6 +10,7 @@ import { FormError, PageHeader, Spinner } from '@/components/ui/feedback';
 import { Card, CardContent, CardHeader, CardTitle, Field, Input, Select, Switch, Textarea } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/lib/api';
+import { useNow } from '@/lib/clock';
 import { useAuth } from '@/lib/auth';
 import { fmtDateTime, fmtKg, toLocalInput } from '@/lib/format';
 import { ALLERGEN_LABEL, STORAGE_META } from '@/lib/labels';
@@ -25,20 +26,24 @@ export default function PublishOffer() {
   const qc = useQueryClient();
   const categories = useQuery({ queryKey: ['categories'], queryFn: () => api.get<Category[]>('/food-categories') });
 
-  const now = new Date();
-  const [form, setForm] = useState({
-    categoryCode: 'COOKED',
-    title: '',
-    description: '',
-    ingredients: '',
-    storageCondition: 'HOT' as StorageCondition,
-    storageInstructions: '',
-    unit: 'kg' as 'kg' | 'portions',
-    amount: '',
-    preparedAt: toLocalInput(new Date(now.getTime() - 30 * 60_000)),
-    pickupBy: toLocalInput(new Date(now.getTime() + 3 * 3_600_000)),
-    approval: 'DEFAULT' as 'DEFAULT' | 'AUTO' | 'MANUAL',
+  const [form, setForm] = useState(() => {
+    const t = Date.now();
+    return {
+      categoryCode: 'COOKED',
+      title: '',
+      description: '',
+      ingredients: '',
+      storageCondition: 'HOT' as StorageCondition,
+      storageInstructions: '',
+      unit: 'kg' as 'kg' | 'portions',
+      amount: '',
+      preparedAt: toLocalInput(new Date(t - 30 * 60_000)),
+      pickupBy: toLocalInput(new Date(t + 3 * 3_600_000)),
+      approval: 'DEFAULT' as 'DEFAULT' | 'AUTO' | 'MANUAL',
+    };
   });
+  // ticks so the preview (time left, transport check) stays right while the form is open
+  const now = useNow(30_000);
   const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [noAllergens, setNoAllergens] = useState(false);
   const [otherLocation, setOtherLocation] = useState(false);
@@ -54,15 +59,15 @@ export default function PublishOffer() {
     const pickup = new Date(form.pickupBy);
     const safeUntil = new Date(prepared.getTime() + category.safeHours * 3_600_000);
     const deadline = pickup < safeUntil ? pickup : safeUntil;
-    const remaining = Math.floor((deadline.getTime() - Date.now()) / 60_000);
+    const remaining = Math.floor((deadline.getTime() - now) / 60_000);
     const problems: string[] = [];
-    if (prepared.getTime() > Date.now() + 2 * 60_000) problems.push('وقت التحضير في المستقبل.');
-    if (pickup <= new Date(Math.max(prepared.getTime(), Date.now()))) problems.push('آخر موعد للاستلام يجب أن يكون لاحقاً.');
+    if (prepared.getTime() > now + 2 * 60_000) problems.push('وقت التحضير في المستقبل.');
+    if (pickup.getTime() <= Math.max(prepared.getTime(), now)) problems.push('آخر موعد للاستلام يجب أن يكون لاحقاً.');
     if (category.needsColdChain && form.storageCondition === 'ROOM_TEMP')
       problems.push(`«${category.name}» يحتاج حفظاً مبرّداً أو ساخناً.`);
     if (remaining < MIN_TRANSPORT) problems.push('لا يكفي الوقت المتبقي لنقل الطعام بأمان (30 دقيقة على الأقل).');
     return { deadline, remaining, cappedBySafety: safeUntil < pickup, problems };
-  }, [category, form.preparedAt, form.pickupBy, form.storageCondition]);
+  }, [category, form.preparedAt, form.pickupBy, form.storageCondition, now]);
 
   const amount = Number(form.amount);
   const kgEstimate = form.unit === 'kg' ? amount : category ? amount * category.portionKg : 0;

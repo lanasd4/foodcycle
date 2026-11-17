@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, HandHeart, Star, X } from 'lucide-react';
 import { ClaimStatusBadge } from '@/components/domain/domain';
@@ -8,21 +8,9 @@ import { FormError } from '@/components/ui/feedback';
 import { Card, CardContent, Field, Textarea } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/lib/api';
+import { useCountdown } from '@/lib/clock';
 import { fmtCountdown, fmtKg, fmtRelative } from '@/lib/format';
 import type { Claim } from '@/lib/types';
-
-/** Live countdown from a number of seconds given by the server */
-export function useCountdown(seconds: number | null) {
-  const [start] = useState(() => Date.now());
-  const [, tick] = useState(0);
-  useEffect(() => {
-    if (seconds == null) return;
-    const t = setInterval(() => tick((x) => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [seconds]);
-  if (seconds == null) return null;
-  return Math.max(0, seconds - Math.floor((Date.now() - start) / 1000));
-}
 
 /** A charity's request as the donor sees it, with approve / reject when pending. */
 export function IncomingClaim({ claim, showOffer = true }: { claim: Claim; showOffer?: boolean }) {

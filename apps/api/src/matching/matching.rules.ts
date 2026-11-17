@@ -79,14 +79,23 @@ export function travelMinutes(distanceKm: number, avgSpeedKmh: number): number {
   return Math.ceil((distanceKm / avgSpeedKmh) * 60);
 }
 
+/**
+ * Building an Intl formatter with a time zone costs ~0.2 ms, using one ~0.004 ms.
+ * Matching calls this once per (offer, charity) pair, so formatters are cached.
+ */
+const formatters = new Map<string, Intl.DateTimeFormat>();
+function hourMinuteFormatter(timeZone: string) {
+  let f = formatters.get(timeZone);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    formatters.set(timeZone, f);
+  }
+  return f;
+}
+
 /** Minutes since local midnight in the given IANA time zone. */
 export function localMinuteOfDay(date: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date);
+  const parts = hourMinuteFormatter(timeZone).formatToParts(date);
   const h = Number(parts.find((p) => p.type === 'hour')!.value);
   const m = Number(parts.find((p) => p.type === 'minute')!.value);
   return h * 60 + m;
