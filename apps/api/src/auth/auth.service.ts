@@ -42,6 +42,7 @@ export class AuthService {
           type: o.type,
           phone: o.phone,
           address: o.address,
+          city: o.city,
           area: o.area,
           location: { type: 'Point', coordinates: [o.location.lng, o.location.lat] },
           registrationNumber: o.registrationNumber ?? null,

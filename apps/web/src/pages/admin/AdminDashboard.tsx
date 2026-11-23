@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   BarElement,
@@ -8,15 +8,17 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { CircleMarker, MapContainer, Tooltip as MapTooltip } from 'react-leaflet';
+import L from 'leaflet';
+import { CircleMarker, MapContainer, Tooltip as MapTooltip, useMap } from 'react-leaflet';
+import { CITIES, CITY_INFO, type City } from '@foodcycle/shared';
 import 'leaflet/dist/leaflet.css';
 import { Building2, HandHeart, Scale, TrendingDown, Utensils } from 'lucide-react';
 import { StatTile } from '@/components/domain/domain';
-import { cssVar, DAMASCUS, Tiles } from '@/components/map/Map';
+import { cityBounds, cssVar, Tiles } from '@/components/map/Map';
 import { ErrorState, PageHeader, Skeleton } from '@/components/ui/feedback';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Select } from '@/components/ui/primitives';
 import { api } from '@/lib/api';
-import { fmtKg, fmtNumber, ORG_TYPE_LABEL } from '@/lib/format';
+import { cityLabel, fmtKg, fmtNumber, ORG_TYPE_LABEL } from '@/lib/format';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -36,12 +38,14 @@ interface TopDonor {
   donorId: string;
   name: string;
   type: string;
+  city: City;
   area: string;
   kgSaved: number;
   donations: number;
   charitiesServed: number;
 }
 interface AreaNeed {
+  city: City;
   area: string;
   charities: number;
   requestedKg: number | null;
@@ -60,24 +64,29 @@ function delta(v: number | null) {
 
 export default function AdminDashboard() {
   const [days, setDays] = useState<keyof typeof PERIODS>(30);
+  const [city, setCity] = useState<City | 'ALL'>('ALL');
   // the period ends "now" at fetch time, so a refetch is never stale
   const period = () => {
     const to = new Date();
-    return { from: new Date(to.getTime() - days * 86_400_000).toISOString(), to: to.toISOString() };
+    return {
+      from: new Date(to.getTime() - days * 86_400_000).toISOString(),
+      to: to.toISOString(),
+      ...(city === 'ALL' ? {} : { city }),
+    };
   };
   const bucket = days <= 30 ? 'day' : days <= 90 ? 'week' : 'month';
 
-  const summary = useQuery({ queryKey: ['analytics', 'summary', days], queryFn: () => api.get<Summary>('/analytics/summary', period()) });
+  const summary = useQuery({ queryKey: ['analytics', 'summary', days, city], queryFn: () => api.get<Summary>('/analytics/summary', period()) });
   const trend = useQuery({
-    queryKey: ['analytics', 'trend', days],
+    queryKey: ['analytics', 'trend', days, city],
     queryFn: () => api.get<{ points: { start: string; kgSaved: number }[] }>('/analytics/trend', { ...period(), bucket }),
   });
   const donors = useQuery({
-    queryKey: ['analytics', 'donors', days],
+    queryKey: ['analytics', 'donors', days, city],
     queryFn: () => api.get<{ items: TopDonor[] }>('/analytics/top-donors', { ...period(), limit: 5 }),
   });
   const areas = useQuery({
-    queryKey: ['analytics', 'areas', days],
+    queryKey: ['analytics', 'areas', days, city],
     queryFn: () => api.get<{ items: AreaNeed[] }>('/analytics/need-by-area', period()),
   });
 
@@ -88,6 +97,15 @@ export default function AdminDashboard() {
         title="لوحة الأثر"
         subtitle="ما أنقذته المنصة فعلاً: الاستلام المؤكَّد فقط."
         action={
+          <div className="flex gap-2">
+          <Select className="w-32" value={city} onChange={(e) => setCity(e.target.value as City | 'ALL')} aria-label="المدينة">
+            <option value="ALL">كل المدن</option>
+            {CITIES.map((c) => (
+              <option key={c} value={c}>
+                {cityLabel(c)}
+              </option>
+            ))}
+          </Select>
           <Select className="w-40" value={days} onChange={(e) => setDays(Number(e.target.value) as keyof typeof PERIODS)} aria-label="الفترة">
             {Object.entries(PERIODS).map(([d, l]) => (
               <option key={d} value={d}>
@@ -95,6 +113,7 @@ export default function AdminDashboard() {
               </option>
             ))}
           </Select>
+          </div>
         }
       />
 
@@ -153,12 +172,15 @@ export default function AdminDashboard() {
             <CardDescription>مؤشر الحاجة = 1 − المُستلم ÷ السعة المعلنة. كلما كبرت الدائرة واحمرّت زادت الحاجة.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-[1fr_14rem]">
-            <NeedMap areas={areas.data?.items ?? []} />
+            <NeedMap areas={areas.data?.items ?? []} city={city} />
             <ol className="space-y-2">
               {areas.data?.items.map((a) => (
-                <li key={a.area} className="rounded-lg border p-2.5">
+                <li key={a.city + a.area} className="rounded-lg border p-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">{a.area}</span>
+                    <span className="text-sm font-semibold">
+                      {a.area}
+                      {city === 'ALL' && <span className="font-normal text-muted-foreground"> · {cityLabel(a.city)}</span>}
+                    </span>
                     <span className="text-sm font-bold num">{a.needIndex == null ? '—' : `${Math.round(a.needIndex * 100)}%`}</span>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground num">
@@ -184,7 +206,7 @@ export default function AdminDashboard() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{d.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {ORG_TYPE_LABEL[d.type]} · {d.area}
+                    {ORG_TYPE_LABEL[d.type]} · {city === 'ALL' ? `${cityLabel(d.city)}، ` : ''}{d.area}
                   </p>
                 </div>
                 <span className="text-sm font-bold num">{fmtKg(d.kgSaved)}</span>
@@ -222,21 +244,40 @@ function TrendChart({ points }: { points: { start: string; kgSaved: number }[] }
   );
 }
 
-function NeedMap({ areas }: { areas: AreaNeed[] }) {
+/** Frames the selected city, or every area when all cities are shown. */
+function FrameView({ areas, city }: { areas: AreaNeed[]; city: City | 'ALL' }) {
+  const map = useMap();
+  const key = city + areas.map((a) => a.city + a.area).join('|');
+  useEffect(() => {
+    if (city !== 'ALL') {
+      const { center, zoom } = CITY_INFO[city];
+      map.setView([center.lat, center.lng], zoom - 0.5);
+    } else if (areas.length) {
+      map.fitBounds(L.latLngBounds(areas.map((a) => [a.location.lat, a.location.lng])).pad(0.3), { maxZoom: 13 });
+    } else {
+      map.fitBounds(cityBounds('DAMASCUS').extend(cityBounds('ALEPPO')));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, map]);
+  return null;
+}
+
+function NeedMap({ areas, city }: { areas: AreaNeed[]; city: City | 'ALL' }) {
   const critical = cssVar('--urgency-critical');
   const soon = cssVar('--urgency-soon');
   const normal = cssVar('--urgency-normal');
-  const center = areas[0]?.location ?? DAMASCUS;
+  const start = CITY_INFO[city === 'ALL' ? 'DAMASCUS' : city].center;
   return (
     <div className="h-72 overflow-hidden rounded-xl border">
-      <MapContainer center={[center.lat, center.lng]} zoom={12} className="size-full" scrollWheelZoom={false}>
+      <MapContainer center={[start.lat, start.lng]} zoom={12} zoomSnap={0.5} className="size-full" scrollWheelZoom={false}>
         <Tiles />
+        <FrameView areas={areas} city={city} />
         {areas.map((a) => {
           const n = a.needIndex ?? 0;
           const color = a.needIndex == null ? cssVar('--claim-closed') : n >= 0.8 ? critical : n >= 0.5 ? soon : normal;
           return (
             <CircleMarker
-              key={a.area}
+              key={a.city + a.area}
               center={[a.location.lat, a.location.lng]}
               radius={10 + n * 22}
               pathOptions={{ color, fillColor: color, fillOpacity: 0.35, weight: 2 }}

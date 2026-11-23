@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, ArrowRight, Building2, Check, HandHeart, Utensils } from 'lucide-react';
-import { CHARITY_ORG_TYPES, DONOR_ORG_TYPES, type OrgType } from '@foodcycle/shared';
+import { CHARITY_ORG_TYPES, CITIES, CITY_INFO, DONOR_ORG_TYPES, type City, type OrgType } from '@foodcycle/shared';
 import { LocationPicker } from '@/components/map/Map';
 import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/ui/feedback';
@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(0);
   const [role, setRole] = useState<RoleChoice>('DONOR');
   const [type, setType] = useState<OrgType>('RESTAURANT');
+  const [city, setCity] = useState<City>('DAMASCUS');
   const [org, setOrg] = useState({ name: '', phone: '', area: '', address: '', registrationNumber: '' });
   const [location, setLocation] = useState<LatLng | null>(null);
   const [account, setAccount] = useState({ email: '', password: '', confirm: '' });
@@ -29,6 +30,16 @@ export default function RegisterPage() {
 
   const types = role === 'DONOR' ? DONOR_ORG_TYPES : CHARITY_ORG_TYPES;
   const set = (k: keyof typeof org) => (e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, [k]: e.target.value });
+  const areas = CITY_INFO[city].areas;
+  // a known neighbourhood: the map opens on it
+  const areaFocus = areas.find((a) => a.name === org.area.trim())?.location ?? null;
+
+  function chooseCity(c: City) {
+    if (c === city) return;
+    setCity(c);
+    setLocation(null); // a point in the other city is no longer valid
+    if (CITY_INFO[city].areas.some((a) => a.name === org.area.trim())) setOrg({ ...org, area: '' });
+  }
 
   const stepValid = [
     true,
@@ -50,6 +61,7 @@ export default function RegisterPage() {
           type,
           phone: org.phone,
           address: org.address,
+          city,
           area: org.area,
           location,
           ...(org.registrationNumber ? { registrationNumber: org.registrationNumber } : {}),
@@ -131,6 +143,25 @@ export default function RegisterPage() {
 
         {step === 1 && (
           <>
+            <Field label="المدينة">
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="المدينة">
+                {CITIES.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={city === c}
+                    onClick={() => chooseCity(c)}
+                    className={cn(
+                      'h-11 cursor-pointer rounded-lg border text-sm font-semibold transition-colors',
+                      city === c ? 'border-primary bg-primary-soft text-primary-soft-foreground' : 'border-input bg-card hover:bg-muted',
+                    )}
+                  >
+                    {CITY_INFO[c].label}
+                  </button>
+                ))}
+              </div>
+            </Field>
             <Field label="اسم الجهة" htmlFor="name">
               <Input id="name" value={org.name} onChange={set('name')} placeholder={role === 'DONOR' ? 'مطعم الياسمين' : 'جمعية بسمة الخير'} />
             </Field>
@@ -139,7 +170,12 @@ export default function RegisterPage() {
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="المنطقة" htmlFor="area">
-                <Input id="area" value={org.area} onChange={set('area')} placeholder="المزة" />
+                <Input id="area" list="areas" value={org.area} onChange={set('area')} placeholder={areas[0].name} autoComplete="off" />
+                <datalist id="areas">
+                  {areas.map((a) => (
+                    <option key={a.name} value={a.name} />
+                  ))}
+                </datalist>
               </Field>
               <Field label="رقم الترخيص" htmlFor="reg" hint="اختياري، يسرّع التحقق">
                 <Input id="reg" value={org.registrationNumber} onChange={set('registrationNumber')} />
@@ -152,8 +188,11 @@ export default function RegisterPage() {
         )}
 
         {step === 2 && (
-          <Field label={role === 'DONOR' ? 'موقع استلام الطعام' : 'موقع الجمعية'} hint="يُستخدم لحساب المسافة واقتراح الأنسب.">
-            <LocationPicker value={location} onChange={setLocation} />
+          <Field
+            label={`${role === 'DONOR' ? 'موقع استلام الطعام' : 'موقع الجمعية'} في ${CITY_INFO[city].label}`}
+            hint="يُستخدم لحساب المسافة واقتراح الأنسب."
+          >
+            <LocationPicker value={location} onChange={setLocation} city={city} focus={areaFocus} />
           </Field>
         )}
 

@@ -56,10 +56,10 @@ describe('Phase 2 — offers and expiry priority (e2e)', () => {
       organization: { ...donorPayload('x').organization, name: 'مخبز السنابل', type: 'BAKERY' },
     });
     charity = await registerAndActivate(charityPayload('info@basma.org'));
-    // ~45 km away from the donors
+    // ~25 km away from the donors (outside the 15 km radius, still in Damascus)
     farCharity = await registerAndActivate({
       ...charityPayload('far@charity.org'),
-      organization: { ...charityPayload('x').organization, name: 'جمعية بعيدة', location: { lat: 33.9, lng: 36.3 } },
+      organization: { ...charityPayload('x').organization, name: 'جمعية بعيدة', location: { lat: 33.65, lng: 36.45 } },
     });
   });
 

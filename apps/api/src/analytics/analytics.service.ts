@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { CHARITY_ORG_TYPES } from '@foodcycle/shared';
+import { CHARITY_ORG_TYPES, CITIES, type City } from '@foodcycle/shared';
 import { DataSource } from 'typeorm';
 import { z } from 'zod';
 import type { AuthUser } from '../auth/auth.types.js';
@@ -11,17 +11,18 @@ const MAX_RANGE_DAYS = 366;
 
 /**
  * Period filter shared by every analytics endpoint: [from, to).
- * Default: the last 30 days.
+ * Default: the last 30 days. Optional `city`: only organizations of that city (all cities when absent).
  */
 export const periodQuery = z
   .object({
     from: z.string().datetime({ offset: true }).optional(),
     to: z.string().datetime({ offset: true }).optional(),
+    city: z.enum(CITIES).optional(),
   })
   .transform((q) => {
     const to = q.to ? new Date(q.to) : new Date();
     const from = q.from ? new Date(q.from) : new Date(to.getTime() - 30 * DAY);
-    return { from, to };
+    return { from, to, city: (q.city ?? null) as City | null };
   })
   .refine((p) => p.from < p.to, { message: '`from` must be before `to`' })
   .refine((p) => p.to.getTime() - p.from.getTime() <= MAX_RANGE_DAYS * DAY, {
@@ -63,11 +64,12 @@ export class AnalyticsService {
   /** Headline numbers for the period, with the change against the previous period of the same length. */
   async summary(p: Period) {
     const length = p.to.getTime() - p.from.getTime();
-    const previous = { from: new Date(p.from.getTime() - length), to: p.from };
+    const previous = { from: new Date(p.from.getTime() - length), to: p.from, city: p.city };
     const [cur, prev] = await Promise.all([this.totals(p), this.totals(previous)]);
     return {
       period: { from: p.from, to: p.to },
-      previousPeriod: previous,
+      city: p.city,
+      previousPeriod: { from: previous.from, to: previous.to },
       ...cur,
       change: {
         kgSaved: pctChange(cur.kgSaved, prev.kgSaved),
@@ -79,24 +81,29 @@ export class AnalyticsService {
     };
   }
 
-  private async totals(p: { from: Date; to: Date }) {
+  private async totals(p: Period) {
     const [[saved], [offers]] = await Promise.all([
       this.db.query(
         `SELECT coalesce(sum(c.quantity_kg), 0)::float AS kg,
                 count(*)::int                       AS donations,
                 count(DISTINCT o.donor_id)::int     AS donors,
                 count(DISTINCT c.charity_id)::int   AS charities
-           FROM claims c JOIN offers o ON o.id = c.offer_id
-          WHERE c.status = 'PICKED_UP' AND c.picked_up_at >= $1 AND c.picked_up_at < $2`,
-        [p.from, p.to],
+           FROM claims c
+           JOIN offers o ON o.id = c.offer_id
+           JOIN organizations d ON d.id = o.donor_id
+          WHERE c.status = 'PICKED_UP' AND c.picked_up_at >= $1 AND c.picked_up_at < $2
+            AND ($3::city IS NULL OR d.city = $3::city)`,
+        [p.from, p.to, p.city],
       ),
       this.db.query(
         `SELECT count(*)::int                                                    AS published,
                 coalesce(sum(quantity_kg), 0)::float                             AS published_kg,
-                count(*) FILTER (WHERE status = 'EXPIRED')::int                  AS expired,
-                coalesce(sum(remaining_kg) FILTER (WHERE status = 'EXPIRED'), 0)::float AS expired_kg
-           FROM offers WHERE created_at >= $1 AND created_at < $2`,
-        [p.from, p.to],
+                count(*) FILTER (WHERE o.status = 'EXPIRED')::int                AS expired,
+                coalesce(sum(remaining_kg) FILTER (WHERE o.status = 'EXPIRED'), 0)::float AS expired_kg
+           FROM offers o JOIN organizations d ON d.id = o.donor_id
+          WHERE o.created_at >= $1 AND o.created_at < $2
+            AND ($3::city IS NULL OR d.city = $3::city)`,
+        [p.from, p.to, p.city],
       ),
     ]);
     return {
@@ -117,7 +124,7 @@ export class AnalyticsService {
   /** Donors ranked by kg actually picked up in the period. */
   async topDonors(p: Period & { limit: number }) {
     const rows = await this.db.query(
-      `SELECT d.id, d.name, d.type, d.area,
+      `SELECT d.id, d.name, d.type, d.city, d.area,
               sum(c.quantity_kg)::float         AS kg,
               count(*)::int                     AS donations,
               count(DISTINCT c.charity_id)::int AS charities
@@ -125,18 +132,20 @@ export class AnalyticsService {
          JOIN offers o ON o.id = c.offer_id
          JOIN organizations d ON d.id = o.donor_id
         WHERE c.status = 'PICKED_UP' AND c.picked_up_at >= $1 AND c.picked_up_at < $2
+          AND ($4::city IS NULL OR d.city = $4::city)
         GROUP BY d.id
         ORDER BY kg DESC, donations DESC, d.name
         LIMIT $3`,
-      [p.from, p.to, p.limit],
+      [p.from, p.to, p.limit, p.city],
     );
     return {
       items: rows.map(
-        (r: { id: string; name: string; type: string; area: string; kg: number; donations: number; charities: number }, i: number) => ({
+        (r: { id: string; name: string; type: string; city: City; area: string; kg: number; donations: number; charities: number }, i: number) => ({
           rank: i + 1,
           donorId: r.id,
           name: r.name,
           type: r.type,
+          city: r.city,
           area: r.area,
           kgSaved: r1(r.kg),
           donations: r.donations,
@@ -154,14 +163,16 @@ export class AnalyticsService {
    * Daily capacity is the best proxy of demand we have: it is what charities say they can distribute.
    * Areas whose charities declared no capacity get need_index = null (unknown, listed last).
    * lat/lng is the centre of the area's charities, for the heat map.
+   * Grouped by city and area: the same neighbourhood name exists in more than one city.
    */
   async needByArea(p: Period) {
     const days = (p.to.getTime() - p.from.getTime()) / DAY;
     const rows = await this.db.query(
       `WITH ch AS (
-         SELECT o.id, o.area, o.location, n.daily_capacity_kg AS cap
+         SELECT o.id, o.city, o.area, o.location, n.daily_capacity_kg AS cap
            FROM organizations o LEFT JOIN charity_needs n ON n.charity_id = o.id
           WHERE o.status = 'ACTIVE' AND o.type = ANY($3::org_type[])
+            AND ($4::city IS NULL OR o.city = $4::city)
        ),
        recv AS (
          SELECT c.charity_id, sum(c.quantity_kg) AS kg
@@ -169,7 +180,7 @@ export class AnalyticsService {
           WHERE c.status = 'PICKED_UP' AND c.picked_up_at >= $1 AND c.picked_up_at < $2
           GROUP BY c.charity_id
        )
-       SELECT ch.area,
+       SELECT ch.city, ch.area,
               count(*)::int                                                   AS charities,
               sum(ch.cap)::float                                              AS daily_capacity,
               coalesce(sum(recv.kg) FILTER (WHERE ch.cap IS NOT NULL), 0)::float AS received_declared,
@@ -177,12 +188,13 @@ export class AnalyticsService {
               avg(ST_Y(ch.location::geometry))                                AS lat,
               avg(ST_X(ch.location::geometry))                                AS lng
          FROM ch LEFT JOIN recv ON recv.charity_id = ch.id
-        GROUP BY ch.area`,
-      [p.from, p.to, [...CHARITY_ORG_TYPES]],
+        GROUP BY ch.city, ch.area`,
+      [p.from, p.to, [...CHARITY_ORG_TYPES], p.city],
     );
     const items = rows
       .map(
         (r: {
+          city: City;
           area: string;
           charities: number;
           daily_capacity: number | null;
@@ -193,6 +205,7 @@ export class AnalyticsService {
         }) => {
           const requested = r.daily_capacity == null ? null : r.daily_capacity * days;
           return {
+            city: r.city,
             area: r.area,
             charities: r.charities,
             requestedKg: requested == null ? null : r1(requested),
@@ -227,9 +240,12 @@ export class AnalyticsService {
            ON c.status = 'PICKED_UP'
           AND c.picked_up_at >= $1 AND c.picked_up_at < $2
           AND date_trunc($3, c.picked_up_at AT TIME ZONE $4) = buckets.b
+          AND ($5::city IS NULL OR EXISTS (
+                SELECT 1 FROM offers o JOIN organizations d ON d.id = o.donor_id
+                 WHERE o.id = c.offer_id AND d.city = $5::city))
         GROUP BY buckets.b
         ORDER BY buckets.b`,
-      [p.from, p.to, p.bucket, timezone],
+      [p.from, p.to, p.bucket, timezone, p.city],
     );
     return {
       bucket: p.bucket,

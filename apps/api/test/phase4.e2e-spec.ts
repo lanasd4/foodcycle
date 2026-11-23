@@ -142,7 +142,7 @@ describe('Phase 4 — real-time notifications (e2e)', () => {
       await verify(n.organization.id);
       const f = await register({
         ...charityPayload('far@charity.org'),
-        organization: { ...charityPayload('x').organization, name: 'جمعية بعيدة', location: { lat: 33.9, lng: 36.3 } },
+        organization: { ...charityPayload('x').organization, name: 'جمعية بعيدة', location: { lat: 33.65, lng: 36.45 } },
       });
       farCharity = f.accessToken;
       await verify(f.organization.id);

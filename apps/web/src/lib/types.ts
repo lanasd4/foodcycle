@@ -1,6 +1,7 @@
 /** Shapes returned by the API (mirror of the server presenters). */
 import type {
   Allergen,
+  City,
   ClaimApprovalMode,
   ClaimStatus,
   OfferStatus,
@@ -25,6 +26,7 @@ export interface Organization {
   type: OrgType;
   phone: string;
   address: string;
+  city: City;
   area: string;
   location: LatLng;
   registrationNumber: string | null;

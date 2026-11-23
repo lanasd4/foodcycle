@@ -1,3 +1,4 @@
+import { CITY_INFO, type City } from '@foodcycle/shared';
 /** Arabic formatting with Latin digits (DESIGN.md: numbers are 0-9 everywhere). */
 const LOCALE = 'ar-u-nu-latn';
 
@@ -38,6 +39,8 @@ export function toLocalInput(d: Date) {
   const pad = (x: number) => String(x).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+export const cityLabel = (c: City) => CITY_INFO[c].label;
 
 export const ORG_TYPE_LABEL: Record<string, string> = {
   RESTAURANT: 'مطعم',

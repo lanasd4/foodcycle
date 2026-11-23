@@ -81,7 +81,7 @@ describe('Phase 5 — smart matching, ratings, settings (e2e)', () => {
       dailyCapacityKg: null,
       pickupHours: { start: damascusHHMM(6), end: damascusHHMM(7) },
     });
-    await charity('F', { lat: 33.9, lng: 36.3 }, { ...all, acceptedCategories: ['BAKERY'], dailyCapacityKg: null });
+    await charity('F', { lat: 33.65, lng: 36.45 }, { ...all, acceptedCategories: ['BAKERY'], dailyCapacityKg: null });
   }, 120_000);
 
   afterAll(async () => {

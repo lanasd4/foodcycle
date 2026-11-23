@@ -9,6 +9,7 @@ export function presentOrganization(o: Organization) {
     type: o.type,
     phone: o.phone,
     address: o.address,
+    city: o.city,
     area: o.area,
     location: { lat, lng },
     registrationNumber: o.registrationNumber,

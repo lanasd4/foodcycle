@@ -240,7 +240,7 @@ export default function PublishOffer() {
               </div>
               {otherLocation && (
                 <div className="sm:col-span-2">
-                  <LocationPicker value={location} onChange={setLocation} />
+                  <LocationPicker value={location} onChange={setLocation} city={organization!.city} focus={organization!.location} />
                 </div>
               )}
             </CardContent>

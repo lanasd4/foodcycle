@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Circle, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { CITY_INFO, isInCity, type City } from '@foodcycle/shared';
 import { LocateFixed } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { LatLng } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-export const DAMASCUS: LatLng = { lat: 33.5138, lng: 36.2765 };
+/** Leaflet bounds of a city: the map can't be dragged far outside it. */
+export function cityBounds(city: City) {
+  const b = CITY_INFO[city].bounds;
+  return L.latLngBounds([b.south, b.west], [b.north, b.east]);
+}
 
 /** Brand-coloured pin (Leaflet's default image icons break with bundlers). */
 export function pin(tone: 'primary' | 'accent' | 'critical' = 'primary') {
@@ -37,6 +42,15 @@ function ClickToPick({ onPick }: { onPick: (p: LatLng) => void }) {
   return null;
 }
 
+/** Re-centres when the target changes after mount (MapContainer only reads `center` once). */
+function Recenter({ to, zoom }: { to: LatLng; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([to.lat, to.lng], zoom);
+  }, [to.lat, to.lng, zoom, map]);
+  return null;
+}
+
 function FlyTo({ to }: { to: LatLng | null }) {
   const map = useMap();
   useEffect(() => {
@@ -50,16 +64,32 @@ const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 /** Resolved value of a design token (Leaflet writes colours as SVG attributes, where var() is not supported). */
 export const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-/** Tap the map (or use GPS) to choose a point. */
+/**
+ * Tap the map (or use GPS) to choose a point inside `city`.
+ * `focus` (e.g. the chosen neighbourhood) is where the map opens when nothing is picked yet.
+ */
 export function LocationPicker({
   value,
   onChange,
+  city,
+  focus,
   className,
 }: {
   value: LatLng | null;
   onChange: (p: LatLng) => void;
+  city: City;
+  focus?: LatLng | null;
   className?: string;
 }) {
+  const info = CITY_INFO[city];
+  const start = value ?? focus ?? info.center;
+  const startZoom = value || focus ? 15 : info.zoom;
+  const [outside, setOutside] = useState(false);
+  const pick = (p: LatLng) => {
+    if (!isInCity(city, p)) return setOutside(true);
+    setOutside(false);
+    onChange(p);
+  };
   const [flyTarget, setFlyTarget] = useState<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -71,9 +101,10 @@ export function LocationPicker({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const p = { lat: round6(pos.coords.latitude), lng: round6(pos.coords.longitude) };
-        onChange(p);
-        setFlyTarget(p);
         setLocating(false);
+        if (!isInCity(city, p)) return setGeoError(`موقعك الحالي خارج ${info.label}. اختر الموقع على الخريطة.`);
+        pick(p);
+        setFlyTarget(p);
       },
       () => {
         setGeoError('تعذّر تحديد موقعك. اختره على الخريطة.');
@@ -86,9 +117,17 @@ export function LocationPicker({
   return (
     <div className={cn('space-y-2', className)}>
       <div className="relative h-72 overflow-hidden rounded-xl border">
-        <MapContainer center={[(value ?? DAMASCUS).lat, (value ?? DAMASCUS).lng]} zoom={value ? 15 : 12} className="size-full">
+        <MapContainer
+          center={[start.lat, start.lng]}
+          zoom={startZoom}
+          minZoom={11}
+          maxBounds={cityBounds(city).pad(0.1)}
+          maxBoundsViscosity={0.8}
+          className="size-full"
+        >
           <Tiles />
-          <ClickToPick onPick={onChange} />
+          {!value && <Recenter to={start} zoom={startZoom} />}
+          <ClickToPick onPick={pick} />
           <FlyTo to={flyTarget} />
           {value && <Marker position={[value.lat, value.lng]} icon={pin()} />}
         </MapContainer>
@@ -106,6 +145,7 @@ export function LocationPicker({
       </div>
       <p className="text-xs text-muted-foreground">
         {geoError ??
+          (outside ? `هذا الموقع خارج ${info.label}.` : null) ??
           (value ? (
             <span dir="ltr" className="num">
               {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
@@ -128,7 +168,7 @@ export function PointsMap({
   radiusKm?: { center: LatLng; km: number };
   className?: string;
 }) {
-  const center = points[0]?.position ?? DAMASCUS;
+  const center = points[0]?.position ?? CITY_INFO.DAMASCUS.center;
   return (
     <div className={cn('h-56 overflow-hidden rounded-xl border', className)}>
       <MapContainer center={[center.lat, center.lng]} zoom={14} className="size-full" scrollWheelZoom={false}>

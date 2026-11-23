@@ -1,4 +1,4 @@
-import type { ClaimApprovalMode, OrgStatus, OrgType } from '@foodcycle/shared';
+import type { City, ClaimApprovalMode, OrgStatus, OrgType } from '@foodcycle/shared';
 import type { Point } from 'geojson';
 import {
   Column,
@@ -44,6 +44,9 @@ export class Organization {
 
   @Column({ type: 'varchar', length: 300 })
   address: string;
+
+  @Column({ type: 'enum', enum: ['DAMASCUS', 'ALEPPO'], enumName: 'city', default: 'DAMASCUS' })
+  city: City;
 
   @Column({ type: 'varchar', length: 120 })
   area: string;

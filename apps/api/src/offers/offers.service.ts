@@ -6,6 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
+import { isInCity } from '@foodcycle/shared';
 import { DataSource, type EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service.js';
 import { ClaimsService } from '../claims/claims.service.js';
@@ -80,6 +81,9 @@ export class OffersService {
       this.settings.all(),
     ]);
     if (!category) throw new BadRequestException({ code: 'UNKNOWN_CATEGORY' });
+    if (input.location && !isInCity(org.city, input.location)) {
+      throw new BadRequestException({ code: 'LOCATION_OUTSIDE_CITY', city: org.city });
+    }
 
     const now = new Date();
     const times = {
@@ -247,6 +251,7 @@ export class OffersService {
       .innerJoinAndSelect('o.donor', 'd')
       .addSelect(`ST_Distance(o.location, ${orgLocation}) / 1000`, 'distance_km')
       .where(`o.status = 'PUBLISHED'`)
+      .andWhere('d.city = (SELECT city FROM organizations WHERE id = :orgId)')
       .andWhere('o.remainingKg > 0')
       .andWhere(`o.effectiveDeadline >= now() + make_interval(mins => :minT)`)
       .setParameters({ orgId: user.orgId, minT: s.min_transport_minutes });

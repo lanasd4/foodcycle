@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/toast';
 import { PointsMap } from '@/components/map/Map';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { fmtDate, ORG_TYPE_LABEL } from '@/lib/format';
+import { cityLabel, fmtDate, ORG_TYPE_LABEL } from '@/lib/format';
 import type { Organization } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -59,7 +59,7 @@ export default function AccountPage() {
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin className="size-4" />
-                  {o.area} · {o.address}
+                  {cityLabel(o.city)} · {o.area} · {o.address}
                 </span>
                 <span className="inline-flex items-center gap-1.5" dir="ltr">
                   <Phone className="size-4" />

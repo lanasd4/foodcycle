@@ -6,6 +6,7 @@
 - **الجهة المانحة** تنشر الفائض في دقيقة، مع تفاصيل السلامة (الصنف، الحفظ، مسببات الحساسية).
 - **الجمعية** يصلها إشعار فوري بالعروض المناسبة لها، تحجز الكمية التي تحتاجها، وتستلم بـ QR.
 - **الأدمن** يتحقق من الجهات، ويتابع الأثر على لوحة تحليلات، ويضبط أوزان المطابقة.
+- **المدن:** دمشق وحلب. كل جهة تختار مدينتها عند التسجيل، والموقع يجب أن يكون داخلها، والجمعية ترى عروض مدينتها فقط. أحياء كل مدينة وحدودها في `packages/shared` (`CITY_INFO`)، وإحداثياتها مُتحقق منها على OpenStreetMap.
 
 ## المستندات
 
@@ -54,7 +55,9 @@ npm run seed:demo                           # بيانات تجريبية (اخ�
 npm run dev:web                             # http://localhost:5173
 ```
 
-**الحسابات التجريبية** (`seed:demo`): `yasmin@demo.foodcycle`، `sham@demo.foodcycle`، `basma@demo.foodcycle`، `nour@demo.foodcycle` وغيرها.
+**الحسابات التجريبية** (`seed:demo`):
+- دمشق: `yasmin@demo.foodcycle`، `sham@demo.foodcycle`، `basma@demo.foodcycle`، `nour@demo.foodcycle` وغيرها.
+- حلب: `halab@demo.foodcycle` (مطعم)، `khair@demo.foodcycle` (جمعية) وغيرها.
 كلمة المرور التجريبية في `apps/api/src/scripts/seed-demo.ts` (`DEMO_PASSWORD`). لا تُشغَّل في الإنتاج (السكربت يرفض).
 
 ## الأوامر
@@ -64,7 +67,7 @@ npm run dev:web                             # http://localhost:5173
 | `npm run dev:api` / `npm run dev:web` | التطوير مع إعادة التحميل التلقائي |
 | `npm run db:up` / `npm run db:down` | تشغيل / إيقاف قاعدة البيانات و Redis |
 | `npm run seed:admin` | إنشاء أول أدمن من `apps/api/.env` |
-| `npm run seed:demo` | بيانات تجريبية واقعية في دمشق |
+| `npm run seed:demo` | بيانات تجريبية واقعية في دمشق وحلب (يضيف المدينة الناقصة فقط) |
 | `npm run test:api` | اختبارات وحدة الـ API (بدون قاعدة بيانات) |
 | `npm run test:e2e` | اختبارات e2e على قاعدة `foodcycle_test` (تُمسح في كل تشغيل) |
 | `npm run test:perf -w @foodcycle/api` | اختبار الحمل (1,000 عرض، 300 جمعية) |
@@ -75,7 +78,7 @@ npm run dev:web                             # http://localhost:5173
 
 | الفحص | النتيجة |
 |---|---|
-| اختبارات e2e (قاعدة بيانات حقيقية) | 97 |
+| اختبارات e2e (قاعدة بيانات حقيقية) | 106 |
 | اختبارات وحدة الـ API | 66 |
 | اختبارات وحدة الواجهة | 10 |
 | اختبار الحمل: p95 لكل العمليات | أقل من 300 مللي ثانية (أبطؤها النشر: 253) |

@@ -56,7 +56,7 @@ export class OrganizationsService {
 
   async list(q: ListOrgsQuery) {
     const [rows, total] = await this.db.getRepository(Organization).findAndCount({
-      where: q.status ? { status: q.status } : {},
+      where: { ...(q.status ? { status: q.status } : {}), ...(q.city ? { city: q.city } : {}) },
       order: { createdAt: 'ASC' },
       take: q.limit,
       skip: q.offset,

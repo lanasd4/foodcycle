@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, FormError, ListSkeleton, PageHeader } from '@/c
 import { Badge, Card, CardContent, Field, Tabs, TabsList, TabsTrigger, Textarea } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/lib/api';
-import { fmtRelative, ORG_TYPE_LABEL } from '@/lib/format';
+import { cityLabel, fmtRelative, ORG_TYPE_LABEL } from '@/lib/format';
 import type { Organization, Page } from '@/lib/types';
 
 const STATUS_TONE = { PENDING_VERIFICATION: 'pending', ACTIVE: 'picked', SUSPENDED: 'rejected' } as const;
@@ -82,7 +82,7 @@ function OrgCard({ org }: { org: Organization }) {
         <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
           <p className="flex items-center gap-2">
             <MapPin className="size-4" />
-            {org.area} · {org.address}
+            {cityLabel(org.city)} · {org.area} · {org.address}
           </p>
           <p className="flex items-center gap-2" dir="ltr">
             <Phone className="size-4" />
