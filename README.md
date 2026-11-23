@@ -8,6 +8,24 @@
 - **الأدمن** يتحقق من الجهات، ويتابع الأثر على لوحة تحليلات، ويضبط أوزان المطابقة.
 - **المدن:** دمشق وحلب. كل جهة تختار مدينتها عند التسجيل، والموقع يجب أن يكون داخلها، والجمعية ترى عروض مدينتها فقط. أحياء كل مدينة وحدودها في `packages/shared` (`CITY_INFO`)، وإحداثياتها مُتحقق منها على OpenStreetMap.
 
+## لقطات من التطبيق
+
+![FoodCycle](screenshots/00-cover-linkedin.png)
+
+| لوحة الأثر (الأدمن) | عروض الجمعية مع المطابقة الذكية |
+|---|---|
+| ![لوحة الأثر](screenshots/09-admin-impact-dashboard.png) | ![عروض الجمعية](screenshots/05-charity-offers.png) |
+| **لوحة المطعم** | **جمعية في حلب ترى عروض مدينتها فقط** |
+| ![لوحة المطعم](screenshots/02-donor-dashboard.png) | ![حلب](screenshots/08-aleppo-charity-offers.png) |
+
+<p align="center">
+  <img src="screenshots/13-mobile-donor.png" width="240" alt="المطعم على الهاتف">
+  &nbsp;&nbsp;
+  <img src="screenshots/14-mobile-charity.png" width="240" alt="الجمعية على الهاتف">
+</p>
+
+باقي اللقطات في مجلد [`screenshots/`](screenshots).
+
 ## المستندات
 
 | المستند | المحتوى |

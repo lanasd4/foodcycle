@@ -5,7 +5,7 @@ import { CHARITY_ORG_TYPES, CITIES, CITY_INFO, DONOR_ORG_TYPES, type City, type 
 import { LocationPicker } from '@/components/map/Map';
 import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/ui/feedback';
-import { Field, Input } from '@/components/ui/primitives';
+import { Field, Input, PasswordInput } from '@/components/ui/primitives';
 import { homeFor, useAuth } from '@/lib/auth';
 import { ORG_TYPE_LABEL } from '@/lib/format';
 import type { LatLng } from '@/lib/types';
@@ -202,14 +202,14 @@ export default function RegisterPage() {
               <Input id="email" type="email" dir="ltr" autoComplete="email" value={account.email} onChange={(e) => setAccount({ ...account, email: e.target.value })} />
             </Field>
             <Field label="كلمة المرور" htmlFor="pw" hint="10 أحرف على الأقل">
-              <Input id="pw" type="password" dir="ltr" autoComplete="new-password" value={account.password} onChange={(e) => setAccount({ ...account, password: e.target.value })} />
+              <PasswordInput id="pw" dir="ltr" autoComplete="new-password" value={account.password} onChange={(e) => setAccount({ ...account, password: e.target.value })} />
             </Field>
             <Field
               label="تأكيد كلمة المرور"
               htmlFor="pw2"
               error={account.confirm && account.confirm !== account.password ? 'كلمتا المرور غير متطابقتين' : undefined}
             >
-              <Input id="pw2" type="password" dir="ltr" autoComplete="new-password" value={account.confirm} onChange={(e) => setAccount({ ...account, confirm: e.target.value })} />
+              <PasswordInput id="pw2" dir="ltr" autoComplete="new-password" value={account.confirm} onChange={(e) => setAccount({ ...account, confirm: e.target.value })} />
             </Field>
             <FormError error={error} />
           </>

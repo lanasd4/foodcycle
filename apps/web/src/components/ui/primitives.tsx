@@ -2,7 +2,7 @@ import * as React from "react";
 import * as SwitchPrimitive from "@radix-ui/react-switch";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cva, type VariantProps } from "class-variance-authority";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ---------------- Card ---------------- */
@@ -71,6 +71,25 @@ const fieldBase =
 
 export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(fieldBase, "h-11", className)} {...props} />;
+}
+
+/** Password field with a show/hide toggle, so people can check what they typed. */
+export function PasswordInput({ className, ...props }: Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">) {
+  const [visible, setVisible] = React.useState(false);
+  return (
+    <div className="relative" dir="ltr">
+      <Input {...props} type={visible ? "text" : "password"} className={cn("pr-11", className)} />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+        aria-pressed={visible}
+        className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-e-lg text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
+  );
 }
 
 export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {

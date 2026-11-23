@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/ui/feedback';
-import { Field, Input } from '@/components/ui/primitives';
+import { Field, Input, PasswordInput } from '@/components/ui/primitives';
 import { homeFor, useAuth } from '@/lib/auth';
 import { AuthLayout } from './AuthLayout';
 
@@ -45,9 +45,8 @@ export default function LoginPage() {
           />
         </Field>
         <Field label="كلمة المرور" htmlFor="password">
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             dir="ltr"
             autoComplete="current-password"
             required
