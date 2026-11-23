@@ -8,3 +8,8 @@ dist
 *.tsbuildinfo
 .env.prod
 !.env.prod.example
+
+# Private explanation docs (kept locally, not published)
+docs/
+FoodCycle-Technical-Plan-v2.md
+DESIGN.md

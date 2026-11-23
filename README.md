@@ -12,13 +12,6 @@
 
 | المستند | المحتوى |
 |---|---|
-| [docs/PROJECT-GUIDE.md](docs/PROJECT-GUIDE.md) | **ابدأ هنا**: شرح المشروع بالمخططات والـ ERD، التشغيل خطوة بخطوة، الحسابات التجريبية، وشرح كل ملف |
-| [docs/TRANSFER-GUIDE.md](docs/TRANSFER-GUIDE.md) | نقل المشروع لجهاز آخر: ما يُنقل، النسخ الاحتياطي للبيانات، التثبيت والتشغيل |
-| [FoodCycle-Technical-Plan-v2.md](FoodCycle-Technical-Plan-v2.md) | الخطة التقنية وسجل قرارات التنفيذ (القسم 15) |
-| [docs/ALGORITHMS.md](docs/ALGORITHMS.md) | شرح الخوارزميات بالصيغ وأمثلة محسوبة |
-| [docs/DEMO.md](docs/DEMO.md) | سيناريو العرض التجريبي (15 دقيقة) |
-| [DESIGN.md](DESIGN.md) | نظام التصميم: الهوية، الألوان، المكونات، القواعد |
-| [docs/LEARNING-GUIDE.md](docs/LEARNING-GUIDE.md) | شرح كل مفاهيم المشروع من الصفر |
 | `http://localhost:3000/api/docs` | توثيق الـ API التفاعلي (Swagger) |
 
 ## البنية
@@ -28,7 +21,6 @@ apps/api          NestJS 12 + TypeORM + PostgreSQL/PostGIS + Redis/BullMQ + Sock
 apps/web          React 19 + Vite + Tailwind 4 + TanStack Query + Leaflet + Chart.js (PWA)
 packages/shared   ثوابت وأنواع مشتركة (الأدوار، الحالات، مسببات الحساسية…)
 infra/db          تهيئة قاعدة البيانات في Docker
-docs/             الشرح والتوثيق
 ```
 
 | الخدمة | المنفذ (تطوير) |
